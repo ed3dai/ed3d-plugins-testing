@@ -1,5 +1,14 @@
 # Changelog
 
+## ed3d-plan-and-execute 1.3.1
+
+Improves resolution of Definition of Done in design plans.
+
+**Changed:**
+- Definition of Done is now written to the design document immediately after user confirmation (Phase 3), rather than being reconstructed later during documentation (Phase 5)
+- Design document file is created in Phase 3 with DoD and placeholders for Summary/Glossary
+- writing-design-plans skill now appends body sections and generates only Summary/Glossary
+
 ## ed3d-plan-and-execute 1.3.0
 
 Adds legibility header to design plans for human reviewers.

@@ -7,13 +7,13 @@ description: Use after brainstorming completes - writes validated designs to doc
 
 ## Overview
 
-Transform validated design from brainstorming conversation into permanent, structured documentation that serves as the contract for implementation planning.
+Complete the design document by appending validated design from brainstorming to the existing file (created in Phase 3 of starting-a-design-plan) and filling in the Summary and Glossary placeholders.
 
-**Core principle:** Convert conversation to documentation. Structure for implementation. Commit for permanence.
+**Core principle:** Append body to existing document. Generate Summary and Glossary. Commit for permanence.
 
-**Announce at start:** "I'm using the writing-design-plans skill to document the validated design."
+**Announce at start:** "I'm using the writing-design-plans skill to complete the design document."
 
-**Context:** Design should already be validated through brainstorming. This skill documents it, not creates it.
+**Context:** Design document already exists with Title, Summary placeholder, confirmed Definition of Done, and Glossary placeholder. This skill appends the body and fills in placeholders.
 
 ## Level of Detail: Design vs Implementation
 
@@ -66,33 +66,36 @@ The first defines what the boundary looks like. The second implements behavior �
 
 ## File Location and Naming
 
-**Save to:** `docs/design-plans/YYYY-MM-DD-<topic>.md`
+**File location:** `docs/design-plans/YYYY-MM-DD-<topic>.md`
 
-**Use actual date and descriptive topic:**
+The file is created by starting-a-design-plan Phase 3. This skill appends to that file.
+
+**Expected naming convention:**
 - Good: `docs/design-plans/2025-01-18-oauth2-service-auth.md`
 - Good: `docs/design-plans/2025-01-18-user-profile-redesign.md`
 - Bad: `docs/design-plans/design.md`
 - Bad: `docs/design-plans/new-feature.md`
 
-## Required Document Structure
+## Document Structure
 
-**EVERY design plan MUST follow this structure:**
+**The design document already exists** from Phase 3 of starting-a-design-plan with this structure:
 
 ```markdown
 # [Feature Name] Design
 
-## Definition of Done
-[What success looks like — the deliverables and success criteria confirmed in Phase 3]
-
 ## Summary
-[1-2 paragraph overview of the approach — what is being built and how]
+<!-- TO BE GENERATED after body is written -->
+
+## Definition of Done
+[Already written - confirmed in Phase 3]
 
 ## Glossary
-[Domain terms and third-party concepts referenced in this document]
+<!-- TO BE GENERATED after body is written -->
+```
 
-- **[Term]**: [Brief explanation]
-- **[Library/Framework concept]**: [What it is and why it matters here]
+**This skill appends the body sections:**
 
+```markdown
 ## Architecture
 [Approach selected in brainstorming Phase 2]
 
@@ -131,13 +134,17 @@ Break implementation into discrete phases (<=8 recommended):
 [Don't include hypothetical "nice to have" features]
 ```
 
+**Then this skill generates** Summary and Glossary to replace the placeholders.
+
 ## Legibility Header
 
-The first three sections (Definition of Done, Summary, Glossary) form the **legibility header**. These sections help human reviewers quickly understand what the document is about before diving into technical details.
+The first three sections (Summary, Definition of Done, Glossary) form the **legibility header**. These sections help human reviewers quickly understand what the document is about before diving into technical details.
 
-**The legibility header is generated AFTER writing the body.** This avoids summarizing something that hasn't been written yet and ensures the header accurately reflects the full document.
+**Definition of Done is already written** — it was captured in Phase 3 immediately after user confirmation, preserving full fidelity.
 
-See "After Writing: Generating the Legibility Header" below for the extraction process.
+**Summary and Glossary are generated AFTER writing the body.** This avoids summarizing something that hasn't been written yet and ensures they accurately reflect the full document.
+
+See "After Writing: Generating Summary and Glossary" below for the extraction process.
 
 ## Implementation Phases: Critical Requirements
 
@@ -385,56 +392,64 @@ Divergence justified by: Legacy code violates FCIS pattern, difficult to test, h
 - Hypothetical future requirements
 - Generic platitudes ("should be secure", "needs good testing")
 
-## After Writing: Generating the Legibility Header
+## After Writing: Generating Summary and Glossary
 
-After writing the body (Architecture through Additional Considerations), generate the legibility header using a subagent with fresh context.
+After appending the body (Architecture through Additional Considerations), generate Summary and Glossary using a subagent with fresh context.
 
 **Why a subagent?**
 - Fresh context avoids "context rot" from the long brainstorming/writing session
 - Acts as a forcing function: if the subagent can't extract a coherent summary, the document is unclear
 - Mirrors the experience of a human reviewer seeing the document for the first time
 
-**Step 1: Write the body first**
+**Step 1: Append the body first**
 
-Write the document with placeholder sections for the legibility header:
+The document already exists with Definition of Done. Append the body sections:
 
 ```markdown
 # [Feature Name] Design
 
-## Definition of Done
-[TO BE GENERATED]
-
 ## Summary
-[TO BE GENERATED]
+<!-- TO BE GENERATED after body is written -->
+
+## Definition of Done
+[Already written from Phase 3]
 
 ## Glossary
-[TO BE GENERATED]
+<!-- TO BE GENERATED after body is written -->
 
 ## Architecture
-[... actual content ...]
+[... append actual content ...]
+
+## Existing Patterns
+[... append actual content ...]
+
+## Implementation Phases
+[... append actual content ...]
+
+## Additional Considerations
+[... append actual content ...]
 ```
 
 **Step 2: Dispatch extraction subagent**
 
-Use the Task tool to extract the legibility header:
+Use the Task tool to generate Summary and Glossary:
 
 ```
 <invoke name="Task">
 <parameter name="subagent_type">ed3d-basic-agents:sonnet-general-purpose</parameter>
-<parameter name="description">Extracting legibility header from design document</parameter>
+<parameter name="description">Generating Summary and Glossary for design document</parameter>
 <parameter name="prompt">
 Read the design document at [file path].
 
-Extract three sections to insert at the top of the document:
+Generate two sections to replace the placeholders in the document:
 
-1. **Definition of Done**: What are the deliverables? What does success look like?
-   Write 2-4 sentences covering the primary deliverables and success criteria.
-
-2. **Summary**: Write 1-2 paragraphs summarizing what is being built and the
+1. **Summary**: Write 1-2 paragraphs summarizing what is being built and the
    high-level approach. This should be understandable to someone unfamiliar
-   with the codebase.
+   with the codebase. The Definition of Done section already exists — your
+   summary should complement it by explaining the "how" rather than restating
+   the "what."
 
-3. **Glossary**: List domain terms from the application and third-party concepts
+2. **Glossary**: List domain terms from the application and third-party concepts
    (libraries, frameworks, patterns) that a reviewer needs to understand this
    document. Format as:
    - **[Term]**: [Brief explanation]
@@ -442,12 +457,12 @@ Extract three sections to insert at the top of the document:
    Include only terms that appear in the document and would benefit from
    explanation.
 
-4. **Omitted Terms**: List terms you considered but skipped as too obvious or
+3. **Omitted Terms**: List terms you considered but skipped as too obvious or
    generic. Only include borderline cases — terms that a less technical reviewer
    might not know. Format as a simple comma-separated list.
 
-Return all four sections. The first three are markdown ready to insert; the
-fourth is for transparency about what was excluded.
+Return all three sections. The first two are markdown ready to insert; the
+third is for transparency about what was excluded.
 </parameter>
 </invoke>
 ```
@@ -460,15 +475,15 @@ Before inserting the extracted sections, briefly mention the omitted terms to th
 
 Don't wait for approval — proceed to insert the sections. The user can hit escape and ask for adjustments if needed.
 
-**Step 4: Insert extracted sections**
+**Step 4: Replace placeholders**
 
-Replace the placeholder sections (Definition of Done, Summary, Glossary) with the subagent's output. Do not insert the Omitted Terms section — that was for your transparency message only.
+Replace the Summary and Glossary placeholder comments with the subagent's output. Do not insert the Omitted Terms section — that was for your transparency message only.
 
 **Step 5: Review and adjust**
 
-Briefly review the extracted sections for accuracy. The subagent may miss nuance from the conversation — adjust if needed, but prefer the subagent's version when it's accurate (it reflects what the document actually says, not what you remember).
+Briefly review the generated sections for accuracy. The subagent may miss nuance from the conversation — adjust if needed, but prefer the subagent's version when it's accurate (it reflects what the document actually says, not what you remember).
 
-## After Legibility Header: Commit
+## After Summary and Glossary: Commit
 
 **Commit the design document:**
 
@@ -494,7 +509,7 @@ EOF
 | Excuse | Reality |
 |--------|---------|
 | "I'll write the summary first since I know what I'm building" | Write body first. Summarize what you wrote, not what you planned. |
-| "I can write the legibility header myself, don't need subagent" | Subagent has fresh context and acts as forcing function. Use it. |
+| "I can write Summary and Glossary myself, don't need subagent" | Subagent has fresh context and acts as forcing function. Use it. |
 | "Glossary isn't needed, terms are obvious" | Obvious to you after brainstorming. Not to fresh reviewer. Include it. |
 | "Design is simple, don't need phases" | Phases make implementation manageable. Always include. |
 | "Phases are obvious, don't need detail" | writing-plans needs component descriptions. Provide them. |
@@ -515,20 +530,24 @@ EOF
 
 ## Integration with Workflow
 
-This skill receives validated design from brainstorming:
+This skill completes the design document started in Phase 3:
 
 ```
+Phase 3 (Definition of Done) completes
+  -> User confirms Definition of Done
+  -> File created with Title, Summary placeholder, DoD, Glossary placeholder
+  -> DoD captured at full fidelity
+
 Brainstorming (Phase 4) completes
   -> Validated design exists in conversation
   -> User approved incrementally
-  -> Definition of Done confirmed in Phase 3
 
 Writing Design Plans (this skill)
-  -> Write body: Architecture, Existing Patterns, Implementation Phases
+  -> Append body: Architecture, Existing Patterns, Implementation Phases
   -> Add exact paths from investigation
   -> Create discrete phases (<=8)
-  -> Dispatch subagent to extract legibility header
-  -> Insert Definition of Done, Summary, Glossary at top
+  -> Dispatch subagent to generate Summary and Glossary
+  -> Replace placeholders with generated content
   -> Commit to git
 
 Writing Plans (next step)

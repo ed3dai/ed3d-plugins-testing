@@ -135,9 +135,36 @@ Examples of clarifying questions:
 
 **Do not proceed to brainstorming until Definition of Done is confirmed.**
 
-The Definition of Done will be included at the top of the design document for reviewer legibility.
+#### Create Design Document Immediately After Confirmation
 
-Mark Phase 3 as completed when user confirms the Definition of Done.
+**REQUIRED:** Once the user confirms the Definition of Done, create the design document file immediately. This captures the DoD at full fidelity before brainstorming begins.
+
+**File location:** `docs/design-plans/YYYY-MM-DD-<topic>.md`
+
+Use the actual date and a descriptive topic slug (e.g., `2025-01-18-oauth2-service-auth.md`).
+
+**Initial file contents:**
+
+```markdown
+# [Feature Name] Design
+
+## Summary
+<!-- TO BE GENERATED after body is written -->
+
+## Definition of Done
+[The confirmed Definition of Done - copy exactly as confirmed with user]
+
+## Glossary
+<!-- TO BE GENERATED after body is written -->
+```
+
+**Why write immediately:**
+- Captures Definition of Done at peak resolution (right after user confirmation)
+- Prevents fidelity loss during brainstorming conversation
+- Creates working document that grows incrementally
+- Summary and Glossary filled in later by writing-design-plans skill
+
+Mark Phase 3 as completed when user confirms the Definition of Done AND the file is created.
 
 ### Phase 4: Brainstorming
 
@@ -167,19 +194,26 @@ Mark Phase 4 as completed when design is validated.
 
 ### Phase 5: Design Documentation
 
-Write the validated design to a permanent, structured document.
+Append the validated design to the document created in Phase 3.
 
 Mark Phase 5 as in_progress in TodoWrite.
 
 **REQUIRED SUB-SKILL:** Use ed3d-plan-and-execute:writing-design-plans
 
-Announce: "I'm using the writing-design-plans skill to document the validated design."
+Announce: "I'm using the writing-design-plans skill to complete the design document."
+
+**Important:** The design document already exists from Phase 3 with:
+- Title
+- Summary placeholder
+- Confirmed Definition of Done
+- Glossary placeholder
 
 The writing-design-plans skill will:
-- Write design to `docs/design-plans/YYYY-MM-DD-<topic>.md`
+- Append body sections (Architecture, Existing Patterns, Implementation Phases, Additional Considerations) to the existing file
 - Structure with implementation phases (<=8 recommended)
   - DO NOT pad out phases in order to reach the number of 8. 8 is the maximum, not the target.
 - Document existing patterns followed
+- Generate Summary and Glossary to replace placeholders
 - Commit to git
 
 **Output:** Committed design document ready for implementation planning.
