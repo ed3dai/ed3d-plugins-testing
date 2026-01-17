@@ -23,7 +23,7 @@ Rough Idea
 /execute-implementation-plan ──► Working Code (reviewed & committed)
 ```
 
-Each phase produces artifacts that feed the next. You compact context between phases to ensure fresh, focused work.
+Each phase produces artifacts that feed the next. You clear context between phases to ensure fresh, focused work.
 
 ---
 
@@ -121,7 +121,7 @@ After all tasks:
 
 **Code review at every step.** Issues caught early are cheaper than issues caught at PR review. The review-fix loop runs until zero issues, not until "good enough."
 
-**Fresh context between phases.** You compact between design → plan and plan → execute. Each phase gets full context for its specific job.
+**Fresh context between phases.** You /clear between design → plan and plan → execute. Each phase gets full context for its specific job.
 
 ---
 
@@ -179,17 +179,17 @@ You interact with the main orchestrating agent. It dispatches subagents and show
 
 Claude will guide you through context gathering, brainstorming, and design documentation.
 
-When design is complete, you'll get instructions to compact and run:
+When design is complete, you'll get instructions to copy the next command, then /clear:
 
 ```bash
-/compact
+# Copy this command first, then run /clear, then paste it
 /start-implementation-plan @docs/design-plans/2025-01-14-your-feature.md .
 ```
 
 After planning, same pattern:
 
 ```bash
-/compact
+# Copy this command first, then run /clear, then paste it
 /execute-implementation-plan @docs/implementation-plans/2025-01-14-your-feature .
 ```
 

@@ -226,7 +226,7 @@ After design is documented, guide user to create implementation plan in fresh co
 
 Mark Phase 6 as in_progress in TodoWrite.
 
-**Do NOT create implementation plan directly.** The user needs to compact context first.
+**Do NOT create implementation plan directly.** The user needs to /clear context first.
 
 Announce design completion and provide next steps:
 
@@ -235,27 +235,28 @@ Design complete! Design document committed to `docs/design-plans/[filename]`.
 
 Ready to create the implementation plan? This requires fresh context to work effectively.
 
-Run these commands in sequence:
+**IMPORTANT: Copy the command below BEFORE running /clear (it will erase this conversation).**
 
-(1) Compact your context first:
-```
-/compact
-```
-
-(2) Then create the implementation plan:
+(1) Copy this command now:
 ```
 /ed3d-ed3d-plan-and-execute:start-implementation-plan @docs/design-plans/[full-filename].md .
 ```
-
 (the `.` at the end is necessary or else Claude Code will eat the command and do the wrong thing.)
+
+(2) Clear your context:
+```
+/clear
+```
+
+(3) Paste and run the copied command.
 
 The start-implementation-plan command will create detailed tasks, set up a branch, and prepare for execution.
 ```
 
-**Why two separate commands:**
-- User can only paste one command at a time
-- /compact must run first to free up context
+**Why /clear instead of continuing:**
 - Implementation planning needs fresh context for codebase investigation
+- Long conversations accumulate context that degrades quality
+- /clear gives the next phase a clean slate
 
 Mark Phase 6 as completed after providing instructions.
 
@@ -280,7 +281,7 @@ You can and should go backward when:
 | "I know what done looks like, skip confirmation" | Confirm Definition of Done explicitly. Always run Phase 3. |
 | "Simple idea, skip brainstorming" | Brainstorming explores alternatives. Always run Phase 4. |
 | "Design is in conversation, don't need documentation" | Documentation is contract with writing-implementation-plans. Always run Phase 5. |
-| "Can invoke implementation planning directly" | Must compact first. Provide two-command workflow. |
+| "Can invoke implementation planning directly" | Must /clear first. Provide copy-then-clear workflow. |
 | "I can combine phases for efficiency" | Each phase has distinct purpose. Run all six. |
 | "User knows what they want, less structure needed" | Structure ensures nothing is missed. Follow all phases. |
 

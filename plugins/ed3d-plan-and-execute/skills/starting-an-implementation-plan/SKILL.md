@@ -115,43 +115,46 @@ The writing-implementation-plans skill will:
 
 After planning is complete, hand off to execution.
 
-**Do NOT invoke execute-plan directly.** The user needs to compact context first.
+**Do NOT invoke execute-plan directly.** The user needs to /clear context first.
 
 Instead, provide copy-paste instructions:
 
 ```
 Implementation plan complete!
 
-To execute this plan, run these commands in sequence:
+Ready to execute? This requires fresh context to work effectively.
 
-(1) Compact your context first:
-```
-/compact
-```
+**IMPORTANT: Copy the command below BEFORE running /clear (it will erase this conversation).**
 
-(2) Then start execution:
+(1) Copy this command now:
 ```
 /ed3d-ed3d-plan-and-execute:execute-implementation-plan @docs/implementation-plans/YYYY-MM-DD-<feature-name> .
 ```
-
 (the `.` at the end is necessary or else Claude Code will eat the command and do the wrong thing.)
+
+(2) Clear your context:
+```
+/clear
+```
+
+(3) Paste and run the copied command.
 
 The execute-implementation-plan command will implement the plan task-by-task with code review between tasks.
 ```
 
-**Why two separate commands:**
-- User can only paste one command at a time
-- /compact must run first to free up context
+**Why /clear instead of continuing:**
 - Execution needs fresh context to work effectively
+- Long conversations accumulate context that degrades quality
+- /clear gives the execution phase a clean slate
 
 ## Common Mistakes
 
 | Mistake | Fix |
 |---------|-----|
 | Invoking execute-implementation-plan directly | Provide copy-paste instructions instead |
-| Combining compact and execute-implementation-plan | Separate into two command blocks |
+| Not warning user to copy command before /clear | Always warn: "Copy this BEFORE running /clear" |
 | Not specifying full path to plan | Include exact path with phase_01.md |
-| Forgetting to mention compact first | Always tell user to compact before execute |
+| Forgetting to mention /clear | Always tell user to /clear before execute |
 
 ## Integration with Workflow
 
@@ -174,9 +177,9 @@ Starting Implementation Plan (this skill)
     -> Write to docs/implementation-plans/
 
   -> Phase 3: Execution Handoff
-    -> Provide /compact command
-    -> Provide /execute-implementation-plan command with path
-    -> User runs commands in sequence
+    -> Provide /execute-implementation-plan command (tell user to copy first)
+    -> Provide /clear command
+    -> User copies command, clears, then pastes
 
 Execute Implementation Plan (next step)
   -> Reads implementation plan
