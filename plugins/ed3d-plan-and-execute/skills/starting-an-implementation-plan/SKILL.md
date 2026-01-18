@@ -151,7 +151,7 @@ Ready to execute? This requires fresh context to work effectively.
 
 (1) Copy this command now:
 
-/execute-implementation-plan @/Users/ed/project/.worktrees/oauth2-feature/docs/implementation-plans/2025-01-17-oauth2-feature/ /Users/ed/project/.worktrees/oauth2-feature/
+/ed3d-plan-and-execute:execute-implementation-plan /Users/ed/project/.worktrees/oauth2-feature/docs/implementation-plans/2025-01-17-oauth2-feature/ /Users/ed/project/.worktrees/oauth2-feature/
 
 (2) Clear your context:
 
