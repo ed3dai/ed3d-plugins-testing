@@ -1,5 +1,12 @@
 # Changelog
 
+## ed3d-plan-and-execute 1.4.3
+
+Removes misleading directive from implementation plan header.
+
+**Fixed:**
+- Removed "For Claude: REQUIRED SUB-SKILL" directive from plan header template — was being parsed by task-implementor subagent when it should only be used at the top-level orchestrator
+
 ## ed3d-plan-and-execute 1.4.2
 
 Simplifies experimental execution workflow.

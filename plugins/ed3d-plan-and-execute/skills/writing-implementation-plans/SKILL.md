@@ -255,8 +255,6 @@ The execution agent uses these markers to identify related tasks. The tests task
 ```markdown
 # [Feature Name] Implementation Plan
 
-> **For Claude:** REQUIRED SUB-SKILL: Use ed3d-plan-and-execute:executing-an-implementation-plan to implement this plan task-by-task.
-
 **Goal:** [One sentence describing what this builds]
 
 **Architecture:** [2-3 sentences about approach]
