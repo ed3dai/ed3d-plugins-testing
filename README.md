@@ -22,6 +22,8 @@ Rough Idea
 /execute-implementation-plan ──► Working Code (reviewed & committed)
 ```
 
+**Customization:** Create `.ed3d/design-plan-guidance.md` and `.ed3d/implementation-plan-guidance.md` in your project to provide project-specific constraints, terminology, and standards. Run `/how-to-customize` for details.
+
 ## Plugins
 
 | Plugin | Description |

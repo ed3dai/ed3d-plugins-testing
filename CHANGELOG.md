@@ -1,5 +1,20 @@
 # Changelog
 
+## ed3d-plan-and-execute 1.7.0
+
+Adds project-specific guidance files for customizing design and implementation plans.
+
+**New:**
+- **Project guidance files**: Create `.ed3d/design-plan-guidance.md` and `.ed3d/implementation-plan-guidance.md` to provide project-specific constraints, terminology, and standards
+- **`/how-to-customize` command**: Documents available guidance files with examples
+- **Design guidance**: Loaded before clarification phase — defines domain terminology, architectural constraints, technology preferences
+- **Implementation guidance**: Loaded when starting implementation plans AND during final code review — specifies coding standards, testing requirements, review criteria
+
+**Changed:**
+- `starting-a-design-plan`: Checks for and reads `.ed3d/design-plan-guidance.md` between Phase 1 (Context Gathering) and Phase 2 (Clarification)
+- `starting-an-implementation-plan`: Checks for and reads `.ed3d/implementation-plan-guidance.md` after branch setup
+- `writing-implementation-plans`: Includes guidance path in Finalization task for code reviewer
+
 ## ed3d-plan-and-execute 1.6.2
 
 Fixes "Re-read skill" task dependency ordering.
