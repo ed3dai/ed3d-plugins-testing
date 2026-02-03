@@ -413,17 +413,11 @@ Divergence justified by: Legacy code violates FCIS pattern, difficult to test, h
 
 ## After Body: Generating and Validating Acceptance Criteria
 
-After appending the body (Architecture through Additional Considerations), generate Acceptance Criteria and get human validation BEFORE generating Summary and Glossary.
+After appending the body, generate Acceptance Criteria and get human validation BEFORE Summary/Glossary.
 
-**Why Acceptance Criteria?**
-- Translates Definition of Done into specific, verifiable criteria
-- Provides traceability for implementation planning
-- Becomes the basis for test requirements during implementation
-- Ensures human agrees on what "done" looks like before proceeding
+Acceptance Criteria translate the Definition of Done into specific, verifiable items that become the basis for test requirements during implementation.
 
-**Step 1: Generate Acceptance Criteria**
-
-Use a subagent to derive Acceptance Criteria from Definition of Done and Implementation Phases:
+**Step 1: Generate via subagent**
 
 ```
 <invoke name="Task">
@@ -432,64 +426,24 @@ Use a subagent to derive Acceptance Criteria from Definition of Done and Impleme
 <parameter name="prompt">
 Read the design document at [file path].
 
-Generate an Acceptance Criteria section that translates the Definition of Done into
-specific, verifiable criteria organized by implementation phase.
+Generate an Acceptance Criteria section from the Definition of Done and Implementation Phases.
 
-**Input sections to analyze:**
-- Definition of Done (the "what" that must be true)
-- Implementation Phases (the "how" it gets built)
+Structure as:
+- Per-phase criteria (what must be true when each phase completes)
+- End-to-end criteria (cross-phase integration, user journeys)
 
-**Output format:**
+Each criterion must be observable and testable - "User can X" or "API returns Y", not "code is clean." Map every DoD item to at least one criterion.
 
-## Acceptance Criteria
-
-### Per-Phase Criteria
-
-**Phase 1: [Name]**
-- [ ] [Specific, testable criterion derived from DoD]
-- [ ] [Another criterion - observable behavior or state]
-
-**Phase 2: [Name]**
-- [ ] [Criteria for this phase]
-...
-
-### End-to-End Criteria
-Criteria that span the entire implementation or verify cross-phase integration:
-- [ ] [User journey or workflow that exercises multiple phases]
-- [ ] [Integration point between components]
-- [ ] [Performance, reliability, or security criterion if in DoD]
-
-**Guidelines:**
-- Each criterion must be human-verifiable (not "code is clean" or "well-tested")
-- Phrase as observable outcomes: "User can...", "System returns...", "API responds with..."
-- Include both what CAN be automated (unit/integration tests) and what benefits from
-  human verification (UX flows, edge cases, error messages)
-- Map every Definition of Done item to at least one criterion
-- Criteria should be specific enough that two people would agree on pass/fail
-
-Return ONLY the Acceptance Criteria section in markdown format.
+Return the Acceptance Criteria section in markdown.
 </parameter>
 </invoke>
 ```
 
-**Step 2: Present to user for validation**
+**Step 2: Get human validation**
 
-Output the generated Acceptance Criteria to the user, then use AskUserQuestion:
+Present generated criteria, then AskUserQuestion: "Approve to continue, or describe revisions needed."
 
-```
-Question: "These acceptance criteria define what 'done' means for this design. Approve to continue, or describe revisions needed."
-Options:
-  - "Approved - continue to Summary/Glossary"
-  - "Needs revision"
-```
-
-**If user approves:** Append Acceptance Criteria to the document, proceed to Summary/Glossary generation.
-
-**If user requests revision:** Revise based on feedback, present again. Do NOT proceed until approved.
-
-**Step 3: Append to document**
-
-After approval, append the Acceptance Criteria section to the document (after Additional Considerations, before the end).
+Loop until approved. Then append to document and proceed to Summary/Glossary.
 
 ## After Writing: Generating Summary and Glossary
 

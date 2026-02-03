@@ -843,118 +843,38 @@ Proceed to Test Requirements generation.
 
 ## Test Requirements Generation
 
-**This is a tracked task: "Test Requirements: Generate test-requirements.md from Acceptance Criteria"**
+**Tracked task: "Test Requirements: Generate test-requirements.md from Acceptance Criteria"**
 
-After Finalization completes, mark the Test Requirements task as in_progress.
+Mark in_progress after Finalization completes.
 
-**Purpose:** Translate the design plan's Acceptance Criteria into test requirements that:
-1. Will be used by code-reviewer during execution to validate automated test coverage
-2. Will become the basis for the human test plan after implementation completes
+Test requirements map acceptance criteria to specific automated tests, and identify criteria requiring human verification. The test-analyst agent uses this during execution to validate coverage.
 
-### Step 1: Dispatch Opus subagent
+**Step 1: Generate via subagent**
 
 ```
 <invoke name="Task">
 <parameter name="subagent_type">ed3d-basic-agents:opus-general-purpose</parameter>
 <parameter name="description">Generating test requirements from Acceptance Criteria</parameter>
 <parameter name="prompt">
-Read the design document at [DESIGN_PATH].
+Read the design at [DESIGN_PATH] and implementation phases in [PLAN_DIR].
 
-Generate test requirements from the Acceptance Criteria section, rationalized against
-the implementation phases that were just planned.
+Generate test-requirements.md mapping each acceptance criterion to:
+- Automated tests: criterion, test type (unit/integration/e2e), expected test file path
+- Human verification: criteria that can't be automated, with justification and verification approach
 
-**Input to analyze:**
-- Design plan's Acceptance Criteria section
-- Design plan's Definition of Done
-- Implementation phase files in [PLAN_DIR]
-
-**Context to consider:**
-- Any clarifying questions asked during implementation planning and their resolutions
-- Any deviations from the original design that were necessary
-- The actual structure of the implementation (phases, tasks, components)
-
-**Output format:**
-
-# Test Requirements
-
-**Source:** [DESIGN_PATH]
-**Implementation Plan:** [PLAN_DIR]
-**Generated:** [timestamp]
-
-## Automated Test Coverage Required
-
-For each acceptance criterion, specify what automated tests must exist:
-
-### Phase 1: [Name]
-
-| Criterion | Test Type | Test Location | Notes |
-|-----------|-----------|---------------|-------|
-| [Criterion from Acceptance Criteria] | unit/integration/e2e | [expected test file path] | [any special considerations] |
-
-### Phase 2: [Name]
-...
-
-### End-to-End Criteria
-
-| Criterion | Test Type | Test Location | Notes |
-|-----------|-----------|---------------|-------|
-| [Cross-phase criterion] | e2e/integration | [expected test file path] | [what this exercises] |
-
-## Human Verification Required
-
-Criteria that cannot or should not be fully automated:
-
-| Criterion | Why Not Automated | Verification Approach |
-|-----------|-------------------|----------------------|
-| [Criterion] | [UX judgment / visual / performance perception / etc.] | [How human should verify] |
-
-## Rationalization Notes
-
-Document any differences between original Acceptance Criteria and these test requirements:
-
-- [If any criteria were split, merged, or clarified based on implementation planning]
-- [If any criteria need different verification than originally envisioned]
-- [If implementation constraints affect how criteria can be verified]
-
----
-
-**Guidelines:**
-- Every acceptance criterion MUST map to at least one test requirement
-- Be specific about test type (unit, integration, e2e) and expected location
-- If a criterion cannot be automated, explicitly document why and how to verify manually
-- Include any implementation decisions that affect how criteria should be tested
+Rationalize against implementation decisions made during planning. Every acceptance criterion must map to either an automated test or documented human verification.
 </parameter>
 </invoke>
 ```
 
-### Step 2: Handle based on review mode
+**Step 2: Handle based on review mode**
 
-**If user chose "Review each phase interactively":**
+- **Interactive mode:** Present to user, AskUserQuestion for approval. This is the LAST interactive item.
+- **Batch mode:** Write directly, announce completion.
 
-This is the LAST interactive item. Present the generated test requirements to the user:
+**Step 3: Write and complete**
 
-1. Output the full test requirements content in your message
-2. Use AskUserQuestion:
-   ```
-   Question: "These test requirements define what tests must exist for this implementation. Approve to continue, or describe revisions needed."
-   Options:
-     - "Approved - proceed to execution handoff"
-     - "Needs revision"
-   ```
-3. If revision requested: revise and present again
-4. Once approved: proceed to Step 3
-
-**If user chose "Write all phases to disk":**
-
-Write directly without asking. Announce: "Test requirements written to [PLAN_DIR]/test-requirements.md"
-
-### Step 3: Write test-requirements.md
-
-Write the test requirements to `[PLAN_DIR]/test-requirements.md`.
-
-Mark the Test Requirements task as completed.
-
-Proceed to execution handoff.
+Write to `[PLAN_DIR]/test-requirements.md`. Mark task completed. Proceed to execution handoff.
 
 ## Execution Handoff
 
