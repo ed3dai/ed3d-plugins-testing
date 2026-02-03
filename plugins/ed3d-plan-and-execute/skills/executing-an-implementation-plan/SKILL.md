@@ -335,7 +335,7 @@ After all phases complete, invoke the `ed3d-extending-claude:project-claude-libr
 After all phases complete, run a sequence of specialized agents:
 
 ```
-Code Review → Coverage Validation → Test Plan Generation
+Code Review → Test Analysis (Coverage + Plan)
 ```
 
 #### 5a. Final Code Review
@@ -351,33 +351,40 @@ Use the `requesting-code-review` skill for final code review:
 
 Continue the review loop until zero issues remain.
 
-#### 5b. Test Coverage Validation
+#### 5b. Test Analysis
 
 **Only after final code review passes with zero issues.**
 
 **Skip this step if test-requirements.md does not exist.**
 
-Dispatch the test-coverage-validator agent:
+The test-analyst agent performs two sequential tasks with shared analysis:
+1. Validate coverage against acceptance criteria
+2. Generate human test plan (only if coverage passes)
+
+Dispatch the test-analyst agent:
 
 ```
 <invoke name="Task">
-<parameter name="subagent_type">ed3d-plan-and-execute:test-coverage-validator</parameter>
-<parameter name="description">Validating test coverage against acceptance criteria</parameter>
+<parameter name="subagent_type">ed3d-plan-and-execute:test-analyst</parameter>
+<parameter name="description">Analyzing test coverage and generating test plan</parameter>
 <parameter name="prompt">
-Validate that automated tests exist for all acceptance criteria.
+Analyze test implementation against acceptance criteria.
 
 TEST_REQUIREMENTS_PATH: [absolute path to test-requirements.md]
+DESIGN_PLAN_PATH: [absolute path to design plan]
 WORKING_DIRECTORY: [project root]
 BASE_SHA: [commit before first phase]
 HEAD_SHA: [current commit]
 
-Read test-requirements.md and verify each criterion in "Automated Test Coverage Required"
-has an actual test that covers it. Report PASS or FAIL.
+Phase 1: Validate that automated tests exist for all acceptance criteria.
+Phase 2: If coverage passes, generate human test plan using your analysis.
+
+Return coverage validation result. If PASS, include the human test plan.
 </parameter>
 </invoke>
 ```
 
-**If validator returns FAIL:**
+**If analyst returns coverage FAIL:**
 
 1. Dispatch bug-fixer to add missing tests:
    ```
@@ -385,10 +392,10 @@ has an actual test that covers it. Report PASS or FAIL.
    <parameter name="subagent_type">ed3d-plan-and-execute:task-bug-fixer</parameter>
    <parameter name="description">Adding missing test coverage</parameter>
    <parameter name="prompt">
-   Add missing tests identified by the test coverage validator.
+   Add missing tests identified by the test analyst.
 
    Missing coverage:
-   [list from validator output]
+   [list from analyst output]
 
    For each missing test:
    1. Create the test file at the expected location
@@ -401,35 +408,12 @@ has an actual test that covers it. Report PASS or FAIL.
    </invoke>
    ```
 
-2. Re-run test-coverage-validator
-3. Repeat until PASS or three attempts fail (then escalate to human)
+2. Re-run test-analyst
+3. Repeat until coverage PASS or three attempts fail (then escalate to human)
 
-#### 5c. Test Plan Generation
+**If analyst returns coverage PASS:**
 
-**Only after coverage validation passes (or if test-requirements.md doesn't exist, skip to Complete Development).**
-
-Dispatch the test-plan-generator agent:
-
-```
-<invoke name="Task">
-<parameter name="subagent_type">ed3d-plan-and-execute:test-plan-generator</parameter>
-<parameter name="description">Generating human test plan</parameter>
-<parameter name="prompt">
-Generate a human test plan for manual verification.
-
-TEST_REQUIREMENTS_PATH: [absolute path to test-requirements.md]
-DESIGN_PLAN_PATH: [absolute path to design plan]
-WORKING_DIRECTORY: [project root]
-
-Create a comprehensive test plan that covers:
-- Items marked as "Human Verification Required"
-- End-to-end scenarios spanning multiple phases
-- Edge cases and error handling verification
-
-Return the complete test plan document.
-</parameter>
-</invoke>
-```
+The response will include the human test plan. Extract the "Human Test Plan" section.
 
 **Write the test plan:**
 
