@@ -95,6 +95,26 @@ ls [project-root]/.ed3d/implementation-plan-guidance.md
 
 If the file exists, note its **absolute path** for use during code reviews. If it doesn't exist, proceed without it—do not pass a nonexistent path to reviewers.
 
+**Check for test requirements:**
+
+Check if `test-requirements.md` exists in the plan directory:
+
+```bash
+# Check for test requirements (note the absolute path for later use)
+ls [plan-directory]/test-requirements.md
+```
+
+If the file exists, note its **absolute path** for use during code reviews. The test requirements document specifies what automated tests must exist for each acceptance criterion. Code reviewers will validate test coverage against these requirements.
+
+**Also extract the design plan path** from test-requirements.md if it exists:
+
+```bash
+# Get the source design plan path from test requirements
+head -5 [plan-directory]/test-requirements.md | grep "Source:"
+```
+
+Note the design plan path for use during final review.
+
 ### 2. Create Phase-Level Task List
 
 Use TaskCreate to create **three task entries per phase** (or TodoWrite in older Claude Code versions). Include the title from the header:
@@ -217,8 +237,11 @@ Mark "Phase Nc: Code review" as in_progress.
 - BASE_SHA: commit before phase started
 - HEAD_SHA: current commit
 - IMPLEMENTATION_GUIDANCE: absolute path to `.ed3d/implementation-plan-guidance.md` (**only if it exists**—omit entirely if the file doesn't exist)
+- TEST_REQUIREMENTS_PATH: absolute path to `[plan-directory]/test-requirements.md` (**only if it exists**—omit entirely if the file doesn't exist)
 
 The implementation guidance file contains project-specific coding standards, testing requirements, and review criteria. When provided, the code reviewer should read it and apply those standards during review.
+
+The test requirements file specifies what automated tests must exist for each acceptance criterion. When provided, the code reviewer validates that the phase's tests adequately cover the relevant acceptance criteria.
 
 **If code reviewer returns a context limit error:**
 
@@ -310,12 +333,50 @@ After all phases complete, invoke the `ed3d-extending-claude:project-claude-libr
 
 ### 5. Final Review
 
-After all phases complete, use the `requesting-code-review` skill for final review:
-- Reviews entire implementation
+After all phases complete, use the `requesting-code-review` skill for final review.
+
+**Context to provide for final review:**
+- WHAT_WAS_IMPLEMENTED: Summary of all phases completed
+- PLAN_OR_REQUIREMENTS: Reference to the full implementation plan directory
+- BASE_SHA: commit before first phase started
+- HEAD_SHA: current commit
+- IMPLEMENTATION_GUIDANCE: absolute path (if exists)
+- TEST_REQUIREMENTS_PATH: absolute path to test-requirements.md (if exists)
+- DESIGN_PLAN_PATH: absolute path to design plan (extracted from test-requirements.md)
+- IS_FINAL_REVIEW: true
+
+**The final review:**
+- Reviews entire implementation across all phases
 - Checks all plan requirements met
 - Validates overall architecture
+- **When TEST_REQUIREMENTS_PATH provided:** Validates test coverage against ALL acceptance criteria
+- **When zero issues AND TEST_REQUIREMENTS_PATH provided:** Generates human test plan
 
 Continue the review loop until zero issues remain.
+
+**After final review passes with zero issues:**
+
+If TEST_REQUIREMENTS_PATH was provided, the code reviewer will include a **Human Test Plan** section in its response.
+
+Extract this section and write it to `docs/test-plans/`:
+
+```bash
+# Create test-plans directory if needed
+mkdir -p docs/test-plans
+
+# The filename matches the design plan filename
+# e.g., design plan: docs/design-plans/2025-01-24-oauth.md
+#       test plan:   docs/test-plans/2025-01-24-oauth.md
+```
+
+Write the test plan content to the file, then commit:
+
+```bash
+git add docs/test-plans/[filename].md
+git commit -m "docs: add test plan for [feature name]"
+```
+
+Announce: "Human test plan written to `docs/test-plans/[filename].md`"
 
 ### 6. Complete Development
 
