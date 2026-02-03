@@ -866,11 +866,25 @@ Do NOT rationalize skipping minor issues. Do NOT mark Finalization as completed 
 
 **If reviewer returns NEEDS_REVISION or reports ANY issues:**
 
-1. Review the gaps, misalignments, and issues identified
-2. Fix ALL of them - Critical, Important, AND Minor
-3. Update the relevant phase files
-4. Re-run code-reviewer validation
-5. Repeat until reviewer returns APPROVED with zero issues
+1. **Create a task for EACH issue** (survives compaction):
+   ```
+   TaskCreate: "Finalization fix [Critical]: <VERBATIM issue description from reviewer>"
+   TaskCreate: "Finalization fix [Important]: <VERBATIM issue description from reviewer>"
+   TaskCreate: "Finalization fix [Minor]: <VERBATIM issue description from reviewer>"
+   ...one task per issue...
+   TaskCreate: "Finalization: Re-review after fixes"
+   TaskUpdate: set "Re-review" blocked by all fix tasks
+   ```
+
+   **Copy issue descriptions VERBATIM**, even if long. After compaction, the task description is all that remains — it must contain the full issue details to understand what to fix.
+
+2. Review the gaps, misalignments, and issues identified
+3. Fix ALL of them - Critical, Important, AND Minor
+4. Update the relevant phase files
+5. Mark each fix task complete as you address it
+6. Re-run code-reviewer validation
+7. If more issues found, create new individual fix tasks and repeat
+8. Mark "Re-review" complete when zero issues
 
 **Common rationalizations to REJECT:**
 - "Minor issues can be fixed during execution" - NO. Fix them now.
@@ -915,6 +929,22 @@ Rationalize against implementation decisions made during planning. Every accepta
 
 - **Interactive mode:** Present to user, AskUserQuestion for approval. This is the LAST interactive item.
 - **Batch mode:** Write directly, announce completion.
+
+**If user requests revisions in interactive mode:**
+
+1. **Create a task for EACH revision** (survives compaction):
+   ```
+   TaskCreate: "Test requirements fix: <VERBATIM revision request from user>"
+   ...one task per revision...
+   TaskCreate: "Test requirements: Re-present for approval"
+   TaskUpdate: set "Re-present" blocked by all fix tasks
+   ```
+
+   **Copy revision requests VERBATIM**, even if long. After compaction, the task description must contain the full details.
+
+2. Address each revision, marking tasks complete as you go
+3. Re-present for approval
+4. Repeat until approved
 
 **Step 3: Write and complete**
 

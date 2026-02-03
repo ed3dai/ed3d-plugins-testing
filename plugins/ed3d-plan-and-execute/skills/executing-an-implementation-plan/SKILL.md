@@ -243,7 +243,21 @@ The phase changed too much for a single review. Chunk the review:
 4. Run code review for second half of tasks (commits for tasks N/2+1 through N)
 5. Fix any issues found
 
-**When issues are found**, dispatch `task-bug-fixer` with the phase file:
+**When issues are found:**
+
+1. **Create a task for EACH issue** (survives compaction):
+   ```
+   TaskCreate: "Phase N fix [Critical]: <VERBATIM issue description from reviewer>"
+   TaskCreate: "Phase N fix [Important]: <VERBATIM issue description from reviewer>"
+   TaskCreate: "Phase N fix [Minor]: <VERBATIM issue description from reviewer>"
+   ...one task per issue...
+   TaskCreate: "Phase N: Re-review after fixes"
+   TaskUpdate: set "Re-review" blocked by all fix tasks
+   ```
+
+   **Copy issue descriptions VERBATIM**, even if long. After compaction, the task description is all that remains — it must contain the full issue details for the bug-fixer to understand what to fix.
+
+2. **Dispatch `task-bug-fixer`** with the phase file:
 
 ```
 <invoke name="Task">
@@ -274,7 +288,11 @@ The phase changed too much for a single review. Chunk the review:
 </invoke>
 ```
 
-After bug-fixer completes, re-review per the `requesting-code-review` skill. Continue loop until zero issues.
+3. **Mark "Fix issues" complete**, then re-review per the `requesting-code-review` skill.
+
+4. **If re-review finds more issues**, create new fix/re-review tasks. Continue loop until zero issues.
+
+5. **Mark "Re-review" complete** when zero issues.
 
 **Plan execution policy (stricter than general code review):**
 - ALL issues must be fixed (Critical, Important, AND Minor)

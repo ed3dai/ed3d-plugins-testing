@@ -1,5 +1,16 @@
 # Changelog
 
+## ed3d-plan-and-execute 1.9.7
+
+Adds AC coverage verification, compaction-safe task tracking for review fixes, and test plan reminder.
+
+**Changed:**
+- `executing-an-implementation-plan`: Final code review now includes AC_COVERAGE_CHECK — verifies all acceptance criteria are covered by at least one phase
+- `executing-an-implementation-plan`: When code reviewer returns issues, create ONE TASK PER ISSUE with VERBATIM description — survives compaction
+- `writing-implementation-plans`: Same per-issue task creation for finalization code review fixes
+- `writing-implementation-plans`: Same per-revision task creation for test requirements approval
+- `finishing-a-development-branch`: Reminds user to review human test plan (if exists) before considering work complete
+
 ## ed3d-plan-and-execute 1.9.6
 
 Requires verbatim task names to prevent instruction loss.
