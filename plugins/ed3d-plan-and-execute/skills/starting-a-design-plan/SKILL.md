@@ -186,6 +186,9 @@ Use the actual date and a descriptive topic slug (e.g., `2025-01-18-oauth2-servi
 ## Definition of Done
 [The confirmed Definition of Done - copy exactly as confirmed with user]
 
+## Acceptance Criteria
+<!-- TO BE GENERATED and validated before glossary -->
+
 ## Glossary
 <!-- TO BE GENERATED after body is written -->
 ```
@@ -194,7 +197,7 @@ Use the actual date and a descriptive topic slug (e.g., `2025-01-18-oauth2-servi
 - Captures Definition of Done at peak resolution (right after user confirmation)
 - Prevents fidelity loss during brainstorming conversation
 - Creates working document that grows incrementally
-- Summary and Glossary filled in later by writing-design-plans skill
+- Acceptance Criteria, Summary, and Glossary filled in later by writing-design-plans skill
 
 Mark Phase 3 as completed when user confirms the Definition of Done AND the file is created.
 
@@ -238,6 +241,7 @@ Announce: "I'm using the writing-design-plans skill to complete the design docum
 - Title
 - Summary placeholder
 - Confirmed Definition of Done
+- Acceptance Criteria placeholder
 - Glossary placeholder
 
 The writing-design-plans skill will:
@@ -245,6 +249,7 @@ The writing-design-plans skill will:
 - Structure with implementation phases (<=8 recommended)
   - DO NOT pad out phases in order to reach the number of 8. 8 is the maximum, not the target.
 - Document existing patterns followed
+- Generate Acceptance Criteria (success + failure cases for each DoD item), get human validation
 - Generate Summary and Glossary to replace placeholders
 - Commit to git
 

@@ -89,6 +89,9 @@ The file is created by starting-a-design-plan Phase 3. This skill appends to tha
 ## Definition of Done
 [Already written - confirmed in Phase 3]
 
+## Acceptance Criteria
+<!-- TO BE GENERATED and validated before glossary -->
+
 ## Glossary
 <!-- TO BE GENERATED after body is written -->
 ```
@@ -140,13 +143,10 @@ Break implementation into discrete phases (<=8 recommended).
 [Error handling, edge cases, future extensibility - only if relevant]
 
 [Don't include hypothetical "nice to have" features]
-
-## Acceptance Criteria
-[Generated from Definition of Done + Implementation Phases - see below]
 ```
 
 **Then this skill:**
-1. Generates Acceptance Criteria and gets human validation
+1. Generates Acceptance Criteria (inline) and gets human validation
 2. Generates Summary and Glossary to replace the placeholders
 
 ## Legibility Header
@@ -415,35 +415,68 @@ Divergence justified by: Legacy code violates FCIS pattern, difficult to test, h
 
 After appending the body, generate Acceptance Criteria and get human validation BEFORE Summary/Glossary.
 
-Acceptance Criteria translate the Definition of Done into specific, verifiable items that become the basis for test requirements during implementation.
+Acceptance Criteria translate the Definition of Done into specific, verifiable items that become the basis for test requirements during implementation. You have full context from just writing the phases—do this inline, no subagent needed.
 
-**Step 1: Generate via subagent**
+### What Acceptance Criteria Must Cover
 
+For **each Definition of Done item**, think through:
+
+1. **Success cases**: What are all the ways this can succeed? List each distinctly.
+   - Happy path: the normal, expected flow
+   - Variations: different valid inputs, configurations, user types
+   - Edge cases: boundary values, empty inputs, maximum sizes
+
+2. **Important failure cases**: What should the system reject or handle gracefully?
+   - Invalid inputs (malformed, out of range, wrong type)
+   - Unauthorized access attempts
+   - Resource exhaustion or unavailability
+   - Concurrent access conflicts
+
+Then look at the **Implementation Phases and brainstorming details** for additional cases:
+- Integration points between phases (data flows correctly between components)
+- Behavior implied by architectural decisions (caching, retries, timeouts)
+- Edge cases surfaced during design discussion
+
+### Writing Criteria
+
+Each criterion must be **observable and testable**:
+
+**Good:** "API returns 401 when token is expired"
+**Good:** "User sees error message when password is less than 8 characters"
+**Good:** "System processes 100 concurrent requests within 2 seconds"
+
+**Bad:** "System is secure" (vague)
+**Bad:** "Code is clean" (subjective)
+**Bad:** "Performance is acceptable" (unmeasurable)
+
+### Structure
+
+Group criteria by Definition of Done item, then add cross-cutting criteria:
+
+```markdown
+## Acceptance Criteria
+
+### [DoD Item 1: e.g., "Users can authenticate"]
+- **Success:** User with valid credentials receives auth token
+- **Success:** Token contains correct user ID and permissions
+- **Failure:** Invalid password returns 401 with generic error (no password hint)
+- **Failure:** Locked account returns 403 with lockout duration
+- **Edge:** Empty password field shows validation error before submission
+
+### [DoD Item 2: e.g., "Sessions persist across page refresh"]
+...
+
+### Cross-Cutting
+- Token expiration triggers re-authentication prompt (not silent failure)
+- All API errors include correlation ID for debugging
+- ...
 ```
-<invoke name="Task">
-<parameter name="subagent_type">ed3d-basic-agents:sonnet-general-purpose</parameter>
-<parameter name="description">Generating Acceptance Criteria from Definition of Done</parameter>
-<parameter name="prompt">
-Read the design document at [file path].
 
-Generate an Acceptance Criteria section from the Definition of Done and Implementation Phases.
+### Validation
 
-Structure as:
-- Per-phase criteria (what must be true when each phase completes)
-- End-to-end criteria (cross-phase integration, user journeys)
+Present generated criteria to the user. Use AskUserQuestion: "Review the acceptance criteria. Approve to continue, or describe what's missing or needs revision."
 
-Each criterion must be observable and testable - "User can X" or "API returns Y", not "code is clean." Map every DoD item to at least one criterion.
-
-Return the Acceptance Criteria section in markdown.
-</parameter>
-</invoke>
-```
-
-**Step 2: Get human validation**
-
-Present generated criteria, then AskUserQuestion: "Approve to continue, or describe revisions needed."
-
-Loop until approved. Then append to document and proceed to Summary/Glossary.
+Loop until approved. Then replace the placeholder in the document and proceed to Summary/Glossary.
 
 ## After Writing: Generating Summary and Glossary
 
@@ -454,9 +487,9 @@ After appending the body (Architecture through Additional Considerations), gener
 - Acts as a forcing function: if the subagent can't extract a coherent summary, the document is unclear
 - Mirrors the experience of a human reviewer seeing the document for the first time
 
-**Step 1: Append the body first**
+**Step 1: At this point the document looks like:**
 
-The document already exists with Definition of Done. Append the body sections:
+The body has been appended and Acceptance Criteria validated:
 
 ```markdown
 # [Feature Name] Design
@@ -467,23 +500,23 @@ The document already exists with Definition of Done. Append the body sections:
 ## Definition of Done
 [Already written from Phase 3]
 
+## Acceptance Criteria
+[Validated in previous step]
+
 ## Glossary
 <!-- TO BE GENERATED after body is written -->
 
 ## Architecture
-[... append actual content ...]
+[... body content ...]
 
 ## Existing Patterns
-[... append actual content ...]
+[... body content ...]
 
 ## Implementation Phases
-[... append actual content ...]
+[... body content ...]
 
 ## Additional Considerations
-[... append actual content ...]
-
-## Acceptance Criteria
-[... appended after human validation ...]
+[... body content ...]
 ```
 
 **Step 2: Dispatch extraction subagent**
@@ -596,7 +629,7 @@ This skill completes the design document started in Phase 3:
 ```
 Phase 3 (Definition of Done) completes
   -> User confirms Definition of Done
-  -> File created with Title, Summary placeholder, DoD, Glossary placeholder
+  -> File created with Title, Summary placeholder, DoD, AC placeholder, Glossary placeholder
   -> DoD captured at full fidelity
 
 Brainstorming (Phase 4) completes
@@ -607,11 +640,11 @@ Writing Design Plans (this skill)
   -> Append body: Architecture, Existing Patterns, Implementation Phases, Additional Considerations
   -> Add exact paths from investigation
   -> Create discrete phases (<=8)
-  -> Generate Acceptance Criteria from DoD + Phases
+  -> Generate Acceptance Criteria inline (success + failure cases for each DoD item)
   -> USER VALIDATES Acceptance Criteria
-  -> Append Acceptance Criteria to document
+  -> Replace AC placeholder with validated criteria
   -> Dispatch subagent to generate Summary and Glossary
-  -> Replace placeholders with generated content
+  -> Replace Summary/Glossary placeholders with generated content
   -> Commit to git
 
 Writing Implementation Plans (next step)
@@ -621,4 +654,4 @@ Writing Implementation Plans (next step)
   -> Expects exact paths and structure
 ```
 
-**Purpose:** Create contract between design and implementation. Writing-plans relies on this structure. The legibility header ensures human reviewers can quickly understand the document. Acceptance Criteria provide traceability for test requirements.
+**Purpose:** Create contract between design and implementation. Writing-plans relies on this structure. The legibility header (Summary, DoD, Acceptance Criteria, Glossary) ensures human reviewers can quickly understand the document. Acceptance Criteria provide traceability for test requirements.
