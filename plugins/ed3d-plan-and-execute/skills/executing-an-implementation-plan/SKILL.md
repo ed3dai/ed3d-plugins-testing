@@ -237,11 +237,10 @@ Mark "Phase Nc: Code review" as in_progress.
 - BASE_SHA: commit before phase started
 - HEAD_SHA: current commit
 - IMPLEMENTATION_GUIDANCE: absolute path to `.ed3d/implementation-plan-guidance.md` (**only if it exists**—omit entirely if the file doesn't exist)
-- TEST_REQUIREMENTS_PATH: absolute path to `[plan-directory]/test-requirements.md` (**only if it exists**—omit entirely if the file doesn't exist)
 
 The implementation guidance file contains project-specific coding standards, testing requirements, and review criteria. When provided, the code reviewer should read it and apply those standards during review.
 
-The test requirements file specifies what automated tests must exist for each acceptance criterion. When provided, the code reviewer validates that the phase's tests adequately cover the relevant acceptance criteria.
+**Note:** Test requirements validation happens at final review, not per-phase. Per-phase reviews focus on code quality and whether the phase includes tests for its functionality.
 
 **If code reviewer returns a context limit error:**
 
@@ -331,34 +330,108 @@ After all phases complete, invoke the `ed3d-extending-claude:project-claude-libr
 **If librarian reports no updates needed:** Proceed to final review.
 **If librarian subagent is unavailable:** skip this entire step. Say aloud that you're skipping it because the `ed3d-extending-claude` plugin is not available.
 
-### 5. Final Review
+### 5. Final Review Sequence
 
-After all phases complete, use the `requesting-code-review` skill for final review.
+After all phases complete, run a sequence of specialized agents:
 
-**Context to provide for final review:**
+```
+Code Review → Coverage Validation → Test Plan Generation
+```
+
+#### 5a. Final Code Review
+
+Use the `requesting-code-review` skill for final code review:
+
+**Context to provide:**
 - WHAT_WAS_IMPLEMENTED: Summary of all phases completed
 - PLAN_OR_REQUIREMENTS: Reference to the full implementation plan directory
 - BASE_SHA: commit before first phase started
 - HEAD_SHA: current commit
 - IMPLEMENTATION_GUIDANCE: absolute path (if exists)
-- TEST_REQUIREMENTS_PATH: absolute path to test-requirements.md (if exists)
-- DESIGN_PLAN_PATH: absolute path to design plan (extracted from test-requirements.md)
-- IS_FINAL_REVIEW: true
-
-**The final review:**
-- Reviews entire implementation across all phases
-- Checks all plan requirements met
-- Validates overall architecture
-- **When TEST_REQUIREMENTS_PATH provided:** Validates test coverage against ALL acceptance criteria
-- **When zero issues AND TEST_REQUIREMENTS_PATH provided:** Generates human test plan
 
 Continue the review loop until zero issues remain.
 
-**After final review passes with zero issues:**
+#### 5b. Test Coverage Validation
 
-If TEST_REQUIREMENTS_PATH was provided, the code reviewer will include a **Human Test Plan** section in its response.
+**Only after final code review passes with zero issues.**
 
-Extract this section and write it to `docs/test-plans/`:
+**Skip this step if test-requirements.md does not exist.**
+
+Dispatch the test-coverage-validator agent:
+
+```
+<invoke name="Task">
+<parameter name="subagent_type">ed3d-plan-and-execute:test-coverage-validator</parameter>
+<parameter name="description">Validating test coverage against acceptance criteria</parameter>
+<parameter name="prompt">
+Validate that automated tests exist for all acceptance criteria.
+
+TEST_REQUIREMENTS_PATH: [absolute path to test-requirements.md]
+WORKING_DIRECTORY: [project root]
+BASE_SHA: [commit before first phase]
+HEAD_SHA: [current commit]
+
+Read test-requirements.md and verify each criterion in "Automated Test Coverage Required"
+has an actual test that covers it. Report PASS or FAIL.
+</parameter>
+</invoke>
+```
+
+**If validator returns FAIL:**
+
+1. Dispatch bug-fixer to add missing tests:
+   ```
+   <invoke name="Task">
+   <parameter name="subagent_type">ed3d-plan-and-execute:task-bug-fixer</parameter>
+   <parameter name="description">Adding missing test coverage</parameter>
+   <parameter name="prompt">
+   Add missing tests identified by the test coverage validator.
+
+   Missing coverage:
+   [list from validator output]
+
+   For each missing test:
+   1. Create the test file at the expected location
+   2. Write tests that verify the specified acceptance criterion
+   3. Run tests to confirm they pass
+   4. Commit the new tests
+
+   Work from: [directory]
+   </parameter>
+   </invoke>
+   ```
+
+2. Re-run test-coverage-validator
+3. Repeat until PASS or three attempts fail (then escalate to human)
+
+#### 5c. Test Plan Generation
+
+**Only after coverage validation passes (or if test-requirements.md doesn't exist, skip to Complete Development).**
+
+Dispatch the test-plan-generator agent:
+
+```
+<invoke name="Task">
+<parameter name="subagent_type">ed3d-plan-and-execute:test-plan-generator</parameter>
+<parameter name="description">Generating human test plan</parameter>
+<parameter name="prompt">
+Generate a human test plan for manual verification.
+
+TEST_REQUIREMENTS_PATH: [absolute path to test-requirements.md]
+DESIGN_PLAN_PATH: [absolute path to design plan]
+WORKING_DIRECTORY: [project root]
+
+Create a comprehensive test plan that covers:
+- Items marked as "Human Verification Required"
+- End-to-end scenarios spanning multiple phases
+- Edge cases and error handling verification
+
+Return the complete test plan document.
+</parameter>
+</invoke>
+```
+
+**Write the test plan:**
 
 ```bash
 # Create test-plans directory if needed
