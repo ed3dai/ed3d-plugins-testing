@@ -337,6 +337,8 @@ Before creating tasks, capture absolute paths:
 - `DESIGN_PATH`: Absolute path to design plan (e.g., `/Users/ed/project/docs/design-plans/2025-01-24-feature.md`)
 - `PLAN_DIR`: Absolute path to implementation plan directory (e.g., `/Users/ed/project/docs/implementation-plans/2025-01-24-feature/`)
 
+**Read the Acceptance Criteria section from the design plan.** These criteria define what "done" means for the entire implementation. Some criteria apply to specific phases; others span multiple phases. When writing each phase, ensure tasks satisfy the relevant acceptance criteria—the tests you specify should verify those criteria.
+
 **For each phase N, create these tasks with dependencies:**
 
 ```markdown
@@ -431,7 +433,7 @@ Use TaskUpdate to mark each sub-task as in_progress when starting, completed whe
    - Mark task NC as completed
    - (Skip if no external deps - still mark completed with note "N/A")
 
-4. **Write implementation tasks** for this phase (in memory, not to file) based on actual codebase state and external research
+4. **Write implementation tasks** for this phase (in memory, not to file) based on actual codebase state, external research, and the design's Acceptance Criteria—ensure tasks and tests satisfy the relevant criteria for this phase
 
 5. **Present to user** - Output the complete phase plan in your message text:
 
@@ -518,7 +520,8 @@ Use TaskUpdate to mark each sub-task as in_progress when starting, completed whe
 
 4. **Task ND: Write phase file**
    - Mark task ND as in_progress
-   - Write implementation tasks based on actual codebase state and external research
+   - Write implementation tasks based on actual codebase state, external research, and Acceptance Criteria
+   - Ensure tasks and tests satisfy the relevant acceptance criteria for this phase
    - Write directly to disk at `docs/implementation-plans/YYYY-MM-DD-<feature-name>/phase_##.md`
    - Mark task ND as completed, continue to next phase
 
@@ -719,6 +722,7 @@ Which approach should I take?
 - [ ] Count phases - refuse if >8
 - [ ] Ask user for review mode (batch vs interactive)
 - [ ] Capture absolute paths: DESIGN_PATH and PLAN_DIR
+- [ ] Read Acceptance Criteria section from design plan
 - [ ] Create granular task list with TaskCreate (NA, NB, NC, ND per phase + Finalization + Test Requirements)
 - [ ] Set up dependencies with TaskUpdate addBlockedBy (see Step 0)
 - [ ] Task descriptions include absolute paths (not relative)
