@@ -104,16 +104,7 @@ Check if `test-requirements.md` exists in the plan directory:
 ls [plan-directory]/test-requirements.md
 ```
 
-If the file exists, note its **absolute path** for use during code reviews. The test requirements document specifies what automated tests must exist for each acceptance criterion. Code reviewers will validate test coverage against these requirements.
-
-**Also extract the design plan path** from test-requirements.md if it exists:
-
-```bash
-# Get the source design plan path from test requirements
-head -5 [plan-directory]/test-requirements.md | grep "Source:"
-```
-
-Note the design plan path for use during final review.
+If the file exists, note its **absolute path** for use during final review. The test requirements document specifies what automated tests must exist for each acceptance criterion.
 
 ### 2. Create Phase-Level Task List
 
@@ -371,7 +362,6 @@ Dispatch the test-analyst agent:
 Analyze test implementation against acceptance criteria.
 
 TEST_REQUIREMENTS_PATH: [absolute path to test-requirements.md]
-DESIGN_PLAN_PATH: [absolute path to design plan]
 WORKING_DIRECTORY: [project root]
 BASE_SHA: [commit before first phase]
 HEAD_SHA: [current commit]

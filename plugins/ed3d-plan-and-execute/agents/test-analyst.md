@@ -22,7 +22,6 @@ Validate that acceptance criteria have automated test coverage, then generate a 
 ## Inputs
 
 - **TEST_REQUIREMENTS_PATH**: test-requirements.md with acceptance criteria tables
-- **DESIGN_PLAN_PATH**: Original design plan
 - **WORKING_DIRECTORY**: Project root
 
 ## Phase 1: Coverage Validation
@@ -92,8 +91,8 @@ Steps: [specific actions and results]
 |-----------|------------|-------|
 
 ### Traceability
-| DoD Item | Automated Test | Manual Step |
-|----------|----------------|-------------|
+| Acceptance Criterion | Automated Test | Manual Step |
+|----------------------|----------------|-------------|
 ```
 
 ## Loop Behavior
@@ -106,4 +105,4 @@ If you return FAIL, the orchestrator dispatches a bug-fixer then re-runs you. Th
 - Build understanding in Phase 1 that makes Phase 2 specific
 - Report exact gaps so bug-fixer knows what to add
 - Write human steps concrete enough for someone unfamiliar with the code
-- Map every Definition of Done item to either an automated test or a manual step
+- Map every acceptance criterion to either an automated test or a manual step
