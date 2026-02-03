@@ -1,5 +1,14 @@
 # Changelog
 
+## ed3d-plan-and-execute 1.9.5
+
+Dynamic skill activation replaces hardcoded requirements.
+
+**Changed:**
+- `writing-implementation-plans`: Removed hardcoded "REQUIRED SKILL: coding-effectively"
+- `writing-implementation-plans`: Task NB now "Investigate codebase for Phase N and activate relevant skills"
+- Skills activated dynamically based on codebase findings, not statically at skill start
+
 ## ed3d-plan-and-execute 1.9.4
 
 Activates relevant skills during implementation planning based on technology stack.
