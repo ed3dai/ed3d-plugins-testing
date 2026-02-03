@@ -26,7 +26,9 @@ Validate that acceptance criteria have automated test coverage, then generate a 
 
 ## Phase 1: Coverage Validation
 
-Read test-requirements.md. Extract the "Automated Test Coverage Required" table.
+Read test-requirements.md. If the file doesn't exist or is malformed (missing expected tables, unlabeled criteria), stop and return an error asking the human to fix the source document.
+
+Extract the "Automated Test Coverage Required" table.
 
 For each criterion:
 1. Check the expected test file exists
@@ -54,7 +56,7 @@ For each criterion:
 **Result: PASS / FAIL**
 ```
 
-If FAIL, stop. The orchestrator dispatches a bug-fixer and re-runs you.
+If FAIL, stop and return the coverage report. The orchestrator handles retries.
 
 ## Phase 2: Human Test Plan
 
@@ -94,10 +96,6 @@ Steps: [specific actions and results]
 | Acceptance Criterion | Automated Test | Manual Step |
 |----------------------|----------------|-------------|
 ```
-
-## Loop Behavior
-
-If you return FAIL, the orchestrator dispatches a bug-fixer then re-runs you. This repeats until coverage passes or three attempts fail (escalates to human).
 
 ## Key Behaviors
 

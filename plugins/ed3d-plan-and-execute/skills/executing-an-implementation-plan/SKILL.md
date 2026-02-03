@@ -388,10 +388,11 @@ Return coverage validation result. If PASS, include the human test plan.
    [list from analyst output]
 
    For each missing test:
-   1. Create the test file at the expected location
-   2. Write tests that verify the specified acceptance criterion
-   3. Run tests to confirm they pass
-   4. Commit the new tests
+   1. Read the acceptance criterion carefully
+   2. Create the test file at the expected location
+   3. Write tests that verify the criterion's actual behavior—not just code that passes, but code that would fail if the criterion weren't met
+   4. Run tests to confirm they pass
+   5. Commit the new tests
 
    Work from: [directory]
    </parameter>
@@ -411,19 +412,19 @@ The response will include the human test plan. Extract the "Human Test Plan" sec
 # Create test-plans directory if needed
 mkdir -p docs/test-plans
 
-# The filename matches the design plan filename
-# e.g., design plan: docs/design-plans/2025-01-24-oauth.md
-#       test plan:   docs/test-plans/2025-01-24-oauth.md
+# The filename uses the implementation plan directory name
+# e.g., impl plan dir: docs/implementation-plans/2025-01-24-oauth/
+#       test plan:     docs/test-plans/2025-01-24-oauth.md
 ```
 
-Write the test plan content to the file, then commit:
+Write the test plan content to `docs/test-plans/[impl-plan-dir-name].md`, then commit:
 
 ```bash
-git add docs/test-plans/[filename].md
+git add docs/test-plans/[impl-plan-dir-name].md
 git commit -m "docs: add test plan for [feature name]"
 ```
 
-Announce: "Human test plan written to `docs/test-plans/[filename].md`"
+Announce: "Human test plan written to `docs/test-plans/[impl-plan-dir-name].md`"
 
 ### 6. Complete Development
 

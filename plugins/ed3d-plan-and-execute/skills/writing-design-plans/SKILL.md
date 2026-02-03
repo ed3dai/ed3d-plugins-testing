@@ -421,7 +421,7 @@ Acceptance Criteria translate the Definition of Done into specific, verifiable i
 
 ```
 <invoke name="Task">
-<parameter name="subagent_type">ed3d-basic-agents:opus-general-purpose</parameter>
+<parameter name="subagent_type">ed3d-basic-agents:sonnet-general-purpose</parameter>
 <parameter name="description">Generating Acceptance Criteria from Definition of Done</parameter>
 <parameter name="prompt">
 Read the design document at [file path].
