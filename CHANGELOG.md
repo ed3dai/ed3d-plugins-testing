@@ -1,5 +1,19 @@
 # Changelog
 
+## ed3d-plan-and-execute 1.10.3
+
+Add session isolation for parallel planning/execution to prevent file collisions.
+
+**New:**
+- `SCRATCHPAD_DIR` parameter with unique session ID (e.g., `/tmp/plan-2025-01-24-feature-a7f3b2/`) ensures isolation when multiple planning or execution sessions run in parallel
+- Random session ID component prevents collisions on retry attempts
+
+**Changed:**
+- `writing-implementation-plans`: creates and passes SCRATCHPAD_DIR to code-reviewer in Finalization step
+- `executing-an-implementation-plan`: creates SCRATCHPAD_DIR at startup, passes to all code review invocations
+- `requesting-code-review`: accepts and forwards SCRATCHPAD_DIR to code-reviewer subagent
+- `code-reviewer` agent: documents SCRATCHPAD_DIR usage for any scratch files
+
 ## ed3d-extending-claude 1.1.0
 
 Adds marketplace management skill for creating and maintaining Claude Code Plugin Marketplaces.
