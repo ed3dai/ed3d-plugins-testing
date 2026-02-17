@@ -159,6 +159,11 @@ Apply `writing-good-tests` checks (via `coding-effectively`):
 
 **YOU MUST write the full review to the file specified in REVIEW_OUTPUT_FILE.**
 
+If needed, create the parent directory first:
+```bash
+mkdir -p "$(dirname "$REVIEW_OUTPUT_FILE")"
+```
+
 Use this exact format:
 
 ```markdown

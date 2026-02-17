@@ -251,30 +251,9 @@ The phase changed too much for a single review. Chunk the review:
 
 **When issues are found:**
 
-1. **Review issues are tracked via TaskCreate** - the code-reviewer creates tasks for each issue
-2. **Dispatch `task-bug-fixer`** with the review file:
-
-```
-<invoke name="Task">
-<parameter name="subagent_type">ed3d-plan-and-execute:task-bug-fixer</parameter>
-<parameter name="description">Fixing review issues for Phase X (cycle N)</parameter>
-<parameter name="prompt">
-  Fix issues from code review for Phase X.
-
-  REVIEW_OUTPUT_FILE: /tmp/execution-reports/[plan-dir]/phase_XX_review_cycle_N.md
-  WORKING_DIRECTORY: [directory]
-  FIX_REPORT_FILE: /tmp/execution-reports/[plan-dir]/phase_XX_fix_cycle_N_report.md
-
-  Read the review file to get the issues, fix them all (Critical → Important → Minor), verify with tests/build/lint, commit your fixes, and mark fix tasks complete via TaskUpdate.
-
-  Return a compact summary only.
-</parameter>
-</invoke>
-```
-
-3. **Mark fix tasks complete**, then re-review per the `requesting-code-review` skill.
-4. **If re-review finds more issues**, create new fix/re-review tasks. Continue loop until zero issues.
-5. **Mark "Re-review" complete** when zero issues.
+1. **Do not dispatch `task-bug-fixer` directly in this skill.**
+2. **Delegate all fix/re-review actions to `requesting-code-review`** (it owns cycle files, bug-fixer dispatch, and re-review sequencing).
+3. **Proceed only when `requesting-code-review` returns zero issues.**
 
 **Plan execution policy (stricter than general code review):**
 - ALL issues must be fixed (Critical, Important, AND Minor)

@@ -43,6 +43,11 @@ This agent prepares a phase for execution by:
    - Note any `<!-- START_SUBCOMPONENT_X (tasks N-M) -->` markers
    - Track which tasks are grouped in subcomponents
 
+4. **Test linkage metadata for each task:**
+   - Whether the task itself is a test task (`Has Tests: yes`)
+   - If not, whether a later task provides tests for it (`Test Task Ref: Task N`)
+   - If no matching test task is found (`Has Tests: no`, `Test Task Ref: none`)
+
 ### Step 2: Create Output Directory Structure
 
 Create the directory for this phase's output:
@@ -100,10 +105,10 @@ Create `[OUTPUT_DIR]/[plan-dir-name]/phase_XX/phase_XX_summary.md`:
 
 ## Tasks
 
-| # | Name | Type | Path |
-|---|------|------|------|
-| 1 | [Task name from heading] | standalone/subcomponent | /absolute/path/to/phase_XX_task_01.md |
-| 2 | [Task name] | subcomponent A | /absolute/path/to/phase_XX_task_02.md |
+| # | Name | Type | Has Tests | Test Task Ref | Path |
+|---|------|------|-----------|---------------|------|
+| 1 | [Task name from heading] | standalone/subcomponent | yes/no | Task 3 / none | /absolute/path/to/phase_XX_task_01.md |
+| 2 | [Task name] | subcomponent A | yes/no | Task 4 / none | /absolute/path/to/phase_XX_task_02.md |
 ...
 
 ## Subcomponents
@@ -117,6 +122,10 @@ Create `[OUTPUT_DIR]/[plan-dir-name]/phase_XX/phase_XX_summary.md`:
 ## Acceptance Criteria Coverage
 [List ACs this phase covers, from phase header]
 ```
+
+**For each task row, populate test fields explicitly:**
+- `Has Tests`: `yes` or `no`
+- `Test Task Ref`: `Task N` if another task provides tests, otherwise `none`
 
 ### Step 5: Create TaskCreate for Each Task
 

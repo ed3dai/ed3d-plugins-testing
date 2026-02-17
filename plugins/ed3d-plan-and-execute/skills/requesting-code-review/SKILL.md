@@ -13,7 +13,7 @@ Dispatch ed3d-plan-and-execute:code-reviewer subagent to catch issues before the
 ## When to Request Review
 
 **Mandatory:**
-- After each task in plan execution
+- After each phase in implementation-plan execution
 - After completing major feature
 - Before merge to main
 
@@ -152,10 +152,17 @@ After fixes, proceed to Step 3.
 
 **CRITICAL:** Track prior issues across review cycles. Generate a new review file path for the next cycle.
 
+**Use explicit numeric cycle incrementing (never literal `N+1` in filenames):**
+```bash
+CURRENT_CYCLE=[current cycle number]
+NEXT_CYCLE=$((CURRENT_CYCLE + 1))
+REVIEW_OUTPUT_FILE="/tmp/execution-reports/[plan-dir]/phase_XX_review_cycle_${NEXT_CYCLE}.md"
+```
+
 ```
 <invoke name="Task">
 <parameter name="subagent_type">ed3d-plan-and-execute:code-reviewer</parameter>
-<parameter name="description">Re-reviewing after fixes (cycle N+1)</parameter>
+<parameter name="description">Re-reviewing after fixes (cycle [NEXT_CYCLE])</parameter>
 <parameter name="prompt">
   Re-review after bug fixes.
 
@@ -163,7 +170,7 @@ After fixes, proceed to Step 3.
   PLAN_OR_REQUIREMENTS: [original task/requirements]
   BASE_SHA: [commit before this fix cycle]
   HEAD_SHA: [current commit after fixes]
-  REVIEW_OUTPUT_FILE: /tmp/execution-reports/[plan-dir]/phase_XX_review_cycle_N+1.md
+  REVIEW_OUTPUT_FILE: /tmp/execution-reports/[plan-dir]/phase_XX_review_cycle_[NEXT_CYCLE].md
   IMPLEMENTATION_GUIDANCE: [path or "None"]
   PRIOR_ISSUES_TO_VERIFY_FIXED: [list issues from previous review file]
 

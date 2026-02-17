@@ -114,6 +114,11 @@ git commit -m "feat: [description]
 
 **Write your full report to REPORT_OUTPUT_FILE:**
 
+If needed, create the parent directory first:
+```bash
+mkdir -p "$(dirname "$REPORT_OUTPUT_FILE")"
+```
+
 ```markdown
 # Task Implementation Report
 

@@ -123,6 +123,11 @@ git commit -m "fix: address code review feedback
 
 **Write your fix report to FIX_REPORT_FILE:**
 
+If needed, create the parent directory first:
+```bash
+mkdir -p "$(dirname "$FIX_REPORT_FILE")"
+```
+
 ```markdown
 # Bug Fix Report
 
