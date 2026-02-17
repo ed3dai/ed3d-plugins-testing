@@ -1,5 +1,31 @@
 # Changelog
 
+## ed3d-plan-and-execute 1.11.0
+
+File-based execution flow for context efficiency. Reduces orchestrator context from ~30K+ tokens to ~2K tokens by delegating content to files and using TaskCreate as the persistence layer.
+
+_Huge_ thanks to @nickwinder for noticing this issue; his PR was inspiration for taking the realization that Claude Code's caching was blowing out the execution agent's context.
+
+**New:**
+- `execute-phase-prep` agent: Extracts tasks from phase files into individual task spec files, writes summary files, creates TaskCreate for each task
+- Task files written to `/tmp/execution-prep/[plan-dir]/phase_XX_task_YY.md`
+- Summary files written to `/tmp/execution-prep/[plan-dir]/phase_XX_summary.md`
+- Report files written to `/tmp/execution-reports/[plan-dir]/`
+
+**Changed:**
+- `code-reviewer`: Now writes full review to `REVIEW_OUTPUT_FILE`, creates TaskCreate for each issue, returns compact summary
+- `task-bug-fixer`: Now reads issues from `REVIEW_OUTPUT_FILE`, writes report to `FIX_REPORT_FILE`, marks fix tasks complete via TaskUpdate, returns compact summary
+- `task-implementor-fast`: Now reads task from `TASK_SPEC_FILE`, writes report to `REPORT_OUTPUT_FILE`, returns compact summary
+- `requesting-code-review`: Generates review file paths with cycle numbers, passes paths to subagents
+- `executing-an-implementation-plan`: Delegates phase preparation to `execute-phase-prep`, dispatches implementors with task file paths, uses file-based review loop
+- `writing-implementation-plans`: Plan validation now uses file-based code review output
+
+**File formats:**
+- Task file: Contains task content, working directory, phase context, related tasks
+- Summary file: Lists all tasks with paths, subcomponent groupings, AC coverage
+- Review file: Structured markdown with status, issues by severity, verification evidence
+- Report file: Implementation/fix details with verification evidence and commit info
+
 ## ed3d-plan-and-execute 1.10.2
 
 Fix typo in planning handoff command.

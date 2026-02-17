@@ -808,7 +808,14 @@ Which approach should I take?
 
 After all phase D tasks are completed, mark the Finalization task as in_progress.
 
-### Step 1: Dispatch code-reviewer
+### Step 1: Create output directory and dispatch code-reviewer
+
+**Create output directory:**
+```bash
+mkdir -p /tmp/execution-reports/plan-validation
+```
+
+**Dispatch code-reviewer with file-based output:**
 
 ```
 <invoke name="Task">
@@ -817,8 +824,11 @@ After all phase D tasks are completed, mark the Finalization task as in_progress
 <parameter name="prompt">
   Review the implementation plan for completeness and alignment with the design.
 
-  DESIGN_PLAN: [path to design plan, e.g., docs/design-plans/YYYY-MM-DD-feature.md]
-
+  WHAT_WAS_IMPLEMENTED: Implementation plan for [feature name]
+  PLAN_OR_REQUIREMENTS: [path to design plan, e.g., docs/design-plans/YYYY-MM-DD-feature.md]
+  BASE_SHA: "N/A - plan validation"
+  HEAD_SHA: "N/A - plan validation"
+  REVIEW_OUTPUT_FILE: /tmp/execution-reports/plan-validation/validation_review.md
   IMPLEMENTATION_GUIDANCE: [absolute path to .ed3d/implementation-plan-guidance.md, or "None" if file does not exist]
 
   IMPLEMENTATION_PHASES:
@@ -851,11 +861,13 @@ After all phase D tasks are completed, mark the Finalization task as in_progress
      - No forward references to code that doesn't exist yet
      - Each phase ends with verifiable state
 
-  Report:
-  - GAPS: [list any missing coverage]
-  - MISALIGNMENTS: [list any divergence from design]
-  - ISSUES: [Critical/Important/Minor issues in the plan itself]
-  - ASSESSMENT: APPROVED / NEEDS_REVISION
+  Write your full review to REVIEW_OUTPUT_FILE.
+  Create TaskCreate for each issue found.
+  Return a compact summary only:
+  Status: APPROVED / NEEDS_REVISION
+  Issues: Critical: N | Important: N | Minor: N
+  Full review: [REVIEW_OUTPUT_FILE path]
+  Tasks created: N
 </parameter>
 </invoke>
 ```
@@ -866,26 +878,20 @@ After all phase D tasks are completed, mark the Finalization task as in_progress
 
 Do NOT rationalize skipping minor issues. Do NOT mark Finalization as completed until ALL issues are resolved.
 
+**The code-reviewer has already created TaskCreate entries for each issue.** Check TaskList to see them.
+
 **If reviewer returns NEEDS_REVISION or reports ANY issues:**
 
-1. **Create a task for EACH issue** (survives compaction):
-   ```
-   TaskCreate: "Finalization fix [Critical]: <VERBATIM issue description from reviewer>"
-   TaskCreate: "Finalization fix [Important]: <VERBATIM issue description from reviewer>"
-   TaskCreate: "Finalization fix [Minor]: <VERBATIM issue description from reviewer>"
-   ...one task per issue...
-   TaskCreate: "Finalization: Re-review after fixes"
-   TaskUpdate: set "Re-review" blocked by all fix tasks
-   ```
-
-   **Copy issue descriptions VERBATIM**, even if long. After compaction, the task description is all that remains — it must contain the full issue details to understand what to fix.
-
+1. **Read the review file** at `/tmp/execution-reports/plan-validation/validation_review.md` to see full issue details
 2. Review the gaps, misalignments, and issues identified
 3. Fix ALL of them - Critical, Important, AND Minor
 4. Update the relevant phase files
-5. Mark each fix task complete as you address it
-6. Re-run code-reviewer validation
-7. If more issues found, create new individual fix tasks and repeat
+5. Mark each fix task complete via TaskUpdate as you address it
+6. Re-run code-reviewer validation with a new review file:
+   ```
+   REVIEW_OUTPUT_FILE: /tmp/execution-reports/plan-validation/validation_review_cycle_2.md
+   ```
+7. If more issues found, the reviewer creates new fix tasks - repeat
 8. Mark "Re-review" complete when zero issues
 
 **Common rationalizations to REJECT:**
