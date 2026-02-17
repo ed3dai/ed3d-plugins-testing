@@ -47,12 +47,38 @@ The review process is a loop: review → fix → re-review → until zero issues
 
 **Exit condition:** Zero issues, or issues accepted per your workflow's policy.
 
+## File Path Generation
+
+**Generate review file paths with cycle numbers:**
+
+For each review cycle, generate a unique file path:
+
+```
+REVIEW_OUTPUT_FILE: /tmp/execution-reports/[plan-dir]/phase_XX_review_cycle_N.md
+FIX_REPORT_FILE: /tmp/execution-reports/[plan-dir]/phase_XX_fix_cycle_N_report.md
+```
+
+Where:
+- `[plan-dir]` is the name of the implementation plan directory
+- `phase_XX` matches the phase number (e.g., `phase_01`)
+- `cycle_N` is the review cycle number (1, 2, 3, ...)
+
+**Create the directory before dispatch:**
+```bash
+mkdir -p /tmp/execution-reports/[plan-dir]
+```
+
 ## Step 1: Initial Review
 
 **Get git SHAs:**
 ```bash
 BASE_SHA=$(git rev-parse HEAD~1)  # or commit before task
 HEAD_SHA=$(git rev-parse HEAD)
+```
+
+**Create output directory:**
+```bash
+mkdir -p /tmp/execution-reports/[plan-dir]
 ```
 
 **Dispatch code-reviewer subagent:**
@@ -62,18 +88,28 @@ HEAD_SHA=$(git rev-parse HEAD)
 <parameter name="subagent_type">ed3d-plan-and-execute:code-reviewer</parameter>
 <parameter name="description">Reviewing [what was implemented]</parameter>
 <parameter name="prompt">
-  Use template at requesting-code-review/code-reviewer.md
+  Review the implementation for quality and plan alignment.
 
   WHAT_WAS_IMPLEMENTED: [summary of implementation]
   PLAN_OR_REQUIREMENTS: [task/requirements reference]
   BASE_SHA: [commit before work]
   HEAD_SHA: [current commit]
-  DESCRIPTION: [brief summary]
+  REVIEW_OUTPUT_FILE: /tmp/execution-reports/[plan-dir]/phase_XX_review_cycle_1.md
+  IMPLEMENTATION_GUIDANCE: [path or "None"]
+
+  Write your full review to REVIEW_OUTPUT_FILE and create TaskCreate for each issue found.
+  Return a compact summary only.
 </parameter>
 </invoke>
 ```
 
-**Code reviewer returns:** Strengths, Issues (Critical/Important/Minor), Assessment
+**Code reviewer returns:**
+```
+Status: APPROVED / CHANGES REQUIRED
+Issues: Critical: N | Important: N | Minor: N
+Full review: [REVIEW_OUTPUT_FILE path]
+Tasks created: N
+```
 
 ## Step 2: Handle Reviewer Response
 
@@ -86,56 +122,57 @@ Regardless of category (Critical, Important, or Minor), dispatch bug-fixer:
 ```
 <invoke name="Task">
 <parameter name="subagent_type">ed3d-plan-and-execute:task-bug-fixer</parameter>
-<parameter name="description">Fixing review issues</parameter>
+<parameter name="description">Fixing review issues (cycle N)</parameter>
 <parameter name="prompt">
   Fix issues from code review.
 
-  Code reviewer found these issues:
-  [list all issues - Critical, Important, and Minor]
+  REVIEW_OUTPUT_FILE: /tmp/execution-reports/[plan-dir]/phase_XX_review_cycle_N.md
+  WORKING_DIRECTORY: [directory]
+  FIX_REPORT_FILE: /tmp/execution-reports/[plan-dir]/phase_XX_fix_cycle_N_report.md
 
-  Your job is to:
-  1. Understand root cause of each issue
-  2. Apply fixes systematically (Critical → Important → Minor)
-  3. Verify with tests/build/lint
-  4. Commit your fixes
-  5. Report back with evidence
+  Read the review file, fix all issues (Critical → Important → Minor), and write your report to FIX_REPORT_FILE.
+  Mark TaskCreate fix tasks complete as you resolve each issue.
 
-  Work from: [directory]
-
-  Fix ALL issues — including every Minor issue. The goal is ZERO issues on re-review.
-  Minor issues are not optional. Do not skip them.
+  Return a compact summary only.
 </parameter>
 </invoke>
+```
+
+**Bug-fixer returns:**
+```
+Fixed: N issues
+Remaining: M issues (task IDs: [...])
+Commit: [SHA]
+Report: [FIX_REPORT_FILE path]
 ```
 
 After fixes, proceed to Step 3.
 
 ## Step 3: Re-Review After Fixes
 
-**CRITICAL:** Track prior issues across review cycles.
+**CRITICAL:** Track prior issues across review cycles. Generate a new review file path for the next cycle.
 
 ```
 <invoke name="Task">
 <parameter name="subagent_type">ed3d-plan-and-execute:code-reviewer</parameter>
-<parameter name="description">Re-reviewing after fixes (cycle N)</parameter>
+<parameter name="description">Re-reviewing after fixes (cycle N+1)</parameter>
 <parameter name="prompt">
-  Use template at requesting-code-review/code-reviewer.md
+  Re-review after bug fixes.
 
-  WHAT_WAS_IMPLEMENTED: [from bug-fixer's report]
+  WHAT_WAS_IMPLEMENTED: [from bug-fixer's summary]
   PLAN_OR_REQUIREMENTS: [original task/requirements]
   BASE_SHA: [commit before this fix cycle]
   HEAD_SHA: [current commit after fixes]
-  DESCRIPTION: Re-review after bug fixes (review cycle N)
+  REVIEW_OUTPUT_FILE: /tmp/execution-reports/[plan-dir]/phase_XX_review_cycle_N+1.md
+  IMPLEMENTATION_GUIDANCE: [path or "None"]
+  PRIOR_ISSUES_TO_VERIFY_FIXED: [list issues from previous review file]
 
-  PRIOR_ISSUES_TO_VERIFY_FIXED:
-  [list all outstanding issues from previous reviews]
+  Read the previous review at [previous REVIEW_OUTPUT_FILE path] to see what issues were supposed to be fixed.
+  Verify each prior issue is resolved.
+  Check for any new issues introduced by the fixes.
 
-  Verify:
-  1. Each prior issue listed above is actually resolved
-  2. No regressions introduced by the fixes
-  3. Any new issues in the changed code
-
-  Report which prior issues are now fixed and which (if any) remain.
+  Write your full review to REVIEW_OUTPUT_FILE and create TaskCreate for any NEW or PERSISTING issues.
+  Return a compact summary only.
 </parameter>
 </invoke>
 ```
@@ -144,8 +181,21 @@ After fixes, proceed to Step 3.
 - When re-reviewer explicitly confirms fixed → remove from list
 - When re-reviewer doesn't mention an issue → keep on list (silence ≠ fixed)
 - When re-reviewer finds new issues → add to list
+- Re-reviewer creates NEW TaskCreate only for issues that persist after bug-fixer
 
 Loop back to Step 2 if any issues remain.
+
+## Review File Tracking
+
+Keep track of review file paths across cycles:
+
+| Cycle | Review File | Fix Report |
+|-------|-------------|------------|
+| 1 | `phase_01_review_cycle_1.md` | `phase_01_fix_cycle_1_report.md` |
+| 2 | `phase_01_review_cycle_2.md` | `phase_01_fix_cycle_2_report.md` |
+| ... | ... | ... |
+
+Pass the previous review file path to the re-reviewer so they can verify fixes.
 
 ## Handling Failures
 
@@ -161,6 +211,8 @@ Usually means context limits. Retry with focused scope:
 **First retry:** Narrow to changed files only:
 ```
 FOCUSED REVIEW - Context was too large.
+
+REVIEW_OUTPUT_FILE: /tmp/execution-reports/[plan-dir]/phase_XX_review_cycle_N_focused.md
 
 Review ONLY the diff between BASE_SHA and HEAD_SHA.
 Focus on: [list only files actually modified]
@@ -208,5 +260,3 @@ HEAD_SHA: [sha]
 - executing-an-implementation-plan (after each task)
 - finishing-a-development-branch (final review)
 - Ad-hoc when you need a review
-
-**Template location:** requesting-code-review/code-reviewer.md

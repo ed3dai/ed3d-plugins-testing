@@ -8,7 +8,7 @@ user-invocable: false
 
 Execute plan phase-by-phase, loading each phase just-in-time to minimize context usage.
 
-**Core principle:** Read one phase → execute all tasks → review → move to next phase. Never load all phases upfront.
+**Core principle:** Delegate to phase-prep subagent → Execute tasks from files → Review from files. Never load full content into orchestrator context.
 
 **REQUIRED SKILL:** `requesting-code-review` - The review loop (dispatch, fix, re-review until zero issues)
 
@@ -22,11 +22,11 @@ Execute plan phase-by-phase, loading each phase just-in-time to minimize context
 
 **The human cannot see what subagents return. You are their window into the work.**
 
-After EVERY subagent completes (task-implementor, bug-fixer, code-reviewer), you MUST:
+After EVERY subagent completes (task-implementor, bug-fixer, code-reviewer, phase-prep), you MUST:
 
-1. **Print the subagent's full response** to the user before taking any other action
-2. **Do not summarize or paraphrase** - show them what the subagent actually said
-3. **Include all details:** test counts, issue lists, commit hashes, error messages
+1. **Print the subagent's compact response** to the user before taking any other action
+2. **Include key details:** test counts, issue counts, commit hashes, file paths to full reports
+3. **Do not summarize further** - the subagent already returned a compact summary
 
 **Before dispatching any subagent:**
 - Briefly explain (2-3 sentences) what you're asking the agent to do
@@ -112,16 +112,14 @@ If the file exists, note its **absolute path** for use during final review. The 
 Use TaskCreate to create **three task entries per phase** (or TodoWrite in older Claude Code versions). Include the title from the header:
 
 ```
-- [ ] Phase 1a: Read /absolute/path/to/phase_01.md — Document Infrastructure Implementation Plan
+- [ ] Phase 1a: Prepare phase 01 — Document Infrastructure Implementation Plan
 - [ ] Phase 1b: Execute tasks
 - [ ] Phase 1c: Code review
-- [ ] Phase 2a: Read /absolute/path/to/phase_02.md — API Integration
+- [ ] Phase 2a: Prepare phase 02 — API Integration
 - [ ] Phase 2b: Execute tasks
 - [ ] Phase 2c: Code review
 ...
 ```
-
-**Why absolute paths in task entries:** After compaction, context may be summarized. The absolute path in the task entry ensures you always know exactly which file to read.
 
 **Why include the title:** Gives visibility into what each phase covers without loading full content.
 
@@ -129,16 +127,49 @@ Use TaskCreate to create **three task entries per phase** (or TodoWrite in older
 
 For each phase, follow this cycle:
 
-#### 3a. Read Phase File (just-in-time)
+#### 3a. Prepare Phase (DELEGATE to phase-prep subagent)
 
-Mark "Phase Na: Read [path]" as in_progress.
+Mark "Phase Na: Prepare phase NN" as in_progress.
 
-Read ONLY that phase file now. Extract:
-- List of tasks in this phase
-- Working directory
-- Any phase-specific context
+**Create output directories:**
+```bash
+mkdir -p /tmp/execution-prep/[plan-dir-name]
+mkdir -p /tmp/execution-reports/[plan-dir-name]
+```
 
-Mark "Phase Na: Read" as complete.
+**Dispatch execute-phase-prep subagent:**
+
+```
+<invoke name="Task">
+<parameter name="subagent_type">ed3d-plan-and-execute:execute-phase-prep</parameter>
+<parameter name="description">Preparing Phase N: [phase name]</parameter>
+<parameter name="prompt">
+  Extract tasks from the phase file for execution.
+
+  PHASE_FILE: [absolute path to phase file, e.g., /path/to/plan/phase_01.md]
+  OUTPUT_DIR: /tmp/execution-prep
+  WORKING_DIRECTORY: [working directory for this phase]
+
+  Read the phase file, extract each task to its own file, write a summary file, and create TaskCreate for each task.
+
+  Return a compact summary with:
+  - Number of tasks extracted
+  - Path to summary file
+  - List of TaskCreate IDs created
+</parameter>
+</invoke>
+```
+
+**Phase-prep returns:**
+```
+Phase N prep complete.
+Tasks: M
+Task files: /tmp/execution-prep/[plan-dir]/phase_XX/phase_XX_task_*.md
+Summary: /tmp/execution-prep/[plan-dir]/phase_XX/phase_XX_summary.md
+TaskCreate IDs: [list of task IDs]
+```
+
+**Print the response.** Mark "Phase Na: Prepare" as complete.
 
 #### 3b. Execute All Tasks
 
@@ -146,69 +177,41 @@ Mark "Phase Nb: Execute tasks" as in_progress.
 
 **Before dispatching, verify test coverage for functionality tasks:**
 
-If a functionality task (code that does something) has no tests specified:
+Read the phase summary file to check if tasks have tests. If a functionality task has no tests specified:
 1. Check if a subsequent task in the same phase provides tests
 2. If no tests exist anywhere for this functionality → **STOP**
 3. This is a plan gap. Surface to user: "Task N implements [functionality] but no corresponding tests exist in the plan. This needs tests before implementation."
 
 Do NOT implement functionality without tests. Missing tests = plan gap, not something to skip.
 
-**Execute all tasks in sequence.** For each task, dispatch `task-implementor-fast` with the phase file path:
+**Execute all tasks in sequence.** For each task, dispatch `task-implementor-fast`:
 
 ```
 <invoke name="Task">
 <parameter name="subagent_type">ed3d-plan-and-execute:task-implementor-fast</parameter>
-<parameter name="description">Implementing Phase X, Task Y: [description]</parameter>
+<parameter name="description">Implementing Phase N, Task M: [description]</parameter>
 <parameter name="prompt">
-  Implement Task N from the phase file.
+  Implement the task from the task specification file.
 
-  Phase file: [absolute path to phase file]
-  Task number: N
+  TASK_SPEC_FILE: /tmp/execution-prep/[plan-dir]/phase_XX/phase_XX_task_MM.md
+  PHASE_SUMMARY_FILE: /tmp/execution-prep/[plan-dir]/phase_XX/phase_XX_summary.md
+  WORKING_DIRECTORY: [directory]
+  REPORT_OUTPUT_FILE: /tmp/execution-reports/[plan-dir]/phase_XX_task_MM_report.md
 
-  Read the phase file and implement Task N (look for `<!-- START_TASK_N -->`).
+  Read the task spec file, implement the task, verify with tests/build/lint, commit your work, and write your report to the report file.
 
-  Your job is to:
-  1. Read the phase file to understand context
-  2. Apply all relevant skills, such as (if available) ed3d-house-style:coding-effectively
-  3. Implement exactly what Task N specifies
-  4. Verify with tests/build/lint
-  5. Commit your work
-  6. Report back with evidence
-
-  Work from: [directory]
-
-  Provide complete report per your agent instructions.
+  Return a compact summary only.
 </parameter>
 </invoke>
 ```
 
-**For subcomponents** (grouped tasks), dispatch once for all tasks in the subcomponent:
-
+**Task-implementor returns:**
 ```
-<invoke name="Task">
-<parameter name="subagent_type">ed3d-plan-and-execute:task-implementor-fast</parameter>
-<parameter name="description">Implementing Phase X, Subcomponent A (Tasks 3-5): [description]</parameter>
-<parameter name="prompt">
-  Implement Subcomponent A (Tasks 3, 4, 5) from the phase file.
-
-  Phase file: [absolute path to phase file]
-  Tasks: 3, 4, 5 (look for `<!-- START_SUBCOMPONENT_A -->`)
-
-  Read the phase file and implement all tasks in this subcomponent.
-
-  Your job is to:
-  1. Read the phase file to understand context
-  2. Apply all relevant skills, such as (if available) ed3d-house-style:coding-effectively
-  3. Implement all tasks in sequence
-  4. Verify with tests/build/lint after completing all tasks
-  5. Commit your work (one commit per task, or logical commits)
-  6. Report back with evidence for each task
-
-  Work from: [directory]
-
-  Provide complete report covering all tasks.
-</parameter>
-</invoke>
+Status: COMPLETED / FAILED
+Files changed: [list]
+Tests: X/Y passing
+Commit: [SHA]
+Report: [REPORT_OUTPUT_FILE path]
 ```
 
 **Print each task-implementor's response** before moving to the next task.
@@ -225,10 +228,12 @@ Mark "Phase Nc: Code review" as in_progress.
 
 **Context to provide:**
 - WHAT_WAS_IMPLEMENTED: Summary of all tasks in this phase
-- PLAN_OR_REQUIREMENTS: All tasks from this phase
+- PLAN_OR_REQUIREMENTS: Path to phase summary file
 - BASE_SHA: commit before phase started
 - HEAD_SHA: current commit
 - IMPLEMENTATION_GUIDANCE: absolute path to `.ed3d/implementation-plan-guidance.md` (**only if it exists**—omit entirely if the file doesn't exist)
+- PLAN_DIR_NAME: Name of the implementation plan directory (for file paths)
+- PHASE_NUMBER: Phase number (e.g., "01")
 
 The implementation guidance file contains project-specific coding standards, testing requirements, and review criteria. When provided, the code reviewer should read it and apply those standards during review.
 
@@ -246,53 +251,29 @@ The phase changed too much for a single review. Chunk the review:
 
 **When issues are found:**
 
-1. **Create a task for EACH issue** (survives compaction):
-   ```
-   TaskCreate: "Phase N fix [Critical]: <VERBATIM issue description from reviewer>"
-   TaskCreate: "Phase N fix [Important]: <VERBATIM issue description from reviewer>"
-   TaskCreate: "Phase N fix [Minor]: <VERBATIM issue description from reviewer>"
-   ...one task per issue...
-   TaskCreate: "Phase N: Re-review after fixes"
-   TaskUpdate: set "Re-review" blocked by all fix tasks
-   ```
-
-   **Copy issue descriptions VERBATIM**, even if long. After compaction, the task description is all that remains — it must contain the full issue details for the bug-fixer to understand what to fix.
-
-2. **Dispatch `task-bug-fixer`** with the phase file:
+1. **Review issues are tracked via TaskCreate** - the code-reviewer creates tasks for each issue
+2. **Dispatch `task-bug-fixer`** with the review file:
 
 ```
 <invoke name="Task">
 <parameter name="subagent_type">ed3d-plan-and-execute:task-bug-fixer</parameter>
-<parameter name="description">Fixing review issues for Phase X</parameter>
+<parameter name="description">Fixing review issues for Phase X (cycle N)</parameter>
 <parameter name="prompt">
   Fix issues from code review for Phase X.
 
-  Phase file: [absolute path to phase file]
+  REVIEW_OUTPUT_FILE: /tmp/execution-reports/[plan-dir]/phase_XX_review_cycle_N.md
+  WORKING_DIRECTORY: [directory]
+  FIX_REPORT_FILE: /tmp/execution-reports/[plan-dir]/phase_XX_fix_cycle_N_report.md
 
-  Code reviewer found these issues:
-  [list all issues - Critical, Important, and Minor]
+  Read the review file to get the issues, fix them all (Critical → Important → Minor), verify with tests/build/lint, commit your fixes, and mark fix tasks complete via TaskUpdate.
 
-  Read the phase file to understand the tasks and context.
-
-  Your job is to:
-  1. Understand root cause of each issue
-  2. Apply fixes systematically (Critical → Important → Minor)
-  3. Verify with tests/build/lint
-  4. Commit your fixes
-  5. Report back with evidence
-
-  Work from: [directory]
-
-  Fix ALL issues — including every Minor issue. The goal is ZERO issues on re-review.
-  Minor issues are not optional. Do not skip them.
+  Return a compact summary only.
 </parameter>
 </invoke>
 ```
 
-3. **Mark "Fix issues" complete**, then re-review per the `requesting-code-review` skill.
-
+3. **Mark fix tasks complete**, then re-review per the `requesting-code-review` skill.
 4. **If re-review finds more issues**, create new fix/re-review tasks. Continue loop until zero issues.
-
 5. **Mark "Re-review" complete** when zero issues.
 
 **Plan execution policy (stricter than general code review):**
@@ -308,7 +289,7 @@ Mark "Phase Nc: Code review" as complete.
 
 #### 3d. Move to Next Phase
 
-Proceed to the next phase's "Read" step. Repeat 3a-3c for each phase.
+Proceed to the next phase's "Prepare" step. Repeat 3a-3c for each phase.
 
 ### 4. Update Project Context
 
@@ -404,8 +385,9 @@ Return coverage validation result. If PASS, include the human test plan.
    <parameter name="prompt">
    Add missing tests identified by the test analyst.
 
-   Missing coverage:
-   [list from analyst output]
+   REVIEW_OUTPUT_FILE: [path to test analyst report]
+   WORKING_DIRECTORY: [directory]
+   FIX_REPORT_FILE: /tmp/execution-reports/[plan-dir]/final_test_fix_report.md
 
    For each missing test:
    1. Read the acceptance criterion carefully
@@ -414,7 +396,7 @@ Return coverage validation result. If PASS, include the human test plan.
    4. Run tests to confirm they pass
    5. Commit the new tests
 
-   Work from: [directory]
+   Return a compact summary only.
    </parameter>
    </invoke>
    ```
@@ -471,53 +453,56 @@ You: I'm using the `executing-an-implementation-plan` skill.
 [Read first 3 lines of each to get titles]
 
 [Create tasks with TaskCreate:]
-- [ ] Phase 1a: Read /path/to/phase_01.md — Project Setup
+- [ ] Phase 1a: Prepare phase 01 — Project Setup
 - [ ] Phase 1b: Execute tasks
 - [ ] Phase 1c: Code review
-- [ ] Phase 2a: Read /path/to/phase_02.md — Token Service
+- [ ] Phase 2a: Prepare phase 02 — Token Service
 - [ ] Phase 2b: Execute tasks
 - [ ] Phase 2c: Code review
-- [ ] Phase 3a: Read /path/to/phase_03.md — API Middleware
+- [ ] Phase 3a: Prepare phase 03 — API Middleware
 - [ ] Phase 3b: Execute tasks
 - [ ] Phase 3c: Code review
 
 --- Phase 1 ---
 
-[Mark 1a in_progress, read phase_01.md]
-→ Contains 2 tasks: project setup, config files
-
-[Mark 1a complete, 1b in_progress]
+[Mark 1a in_progress]
+[Create /tmp/execution-prep and /tmp/execution-reports directories]
+[Dispatch execute-phase-prep]
+→ Phase 1 prep complete. Tasks: 2. Summary: /tmp/execution-prep/plan/phase_01/phase_01_summary.md
+[Print response, mark 1a complete, 1b in_progress]
 
 [Dispatch task-implementor-fast for Task 1]
-→ Created package.json, tsconfig.json.
+→ Status: COMPLETED. Files: package.json, tsconfig.json. Commit: abc123
+[Print response]
 
 [Dispatch task-implementor-fast for Task 2]
-→ Created config files. Build succeeds.
-
-[Mark 1b complete, 1c in_progress]
+→ Status: COMPLETED. Files: config/*.json. Commit: def456
+[Print response, mark 1b complete, 1c in_progress]
 
 [Use requesting-code-review skill for phase 1]
-→ Zero issues.
-
-[Mark 1c complete]
+→ Status: APPROVED. Issues: 0. Report: /tmp/execution-reports/plan/phase_01_review_cycle_1.md
+[Print response, mark 1c complete]
 
 --- Phase 2 ---
 
-[Mark 2a in_progress, read phase_02.md]
-→ Contains 3 tasks: types, service, tests
-
-[Mark 2a complete, 2b in_progress]
+[Mark 2a in_progress]
+[Dispatch execute-phase-prep]
+→ Phase 2 prep complete. Tasks: 3. ...
+[Print response, mark 2a complete, 2b in_progress]
 
 [Execute all 3 tasks...]
 
 [Mark 2b complete, 2c in_progress]
 
 [Use requesting-code-review skill for phase 2]
-→ Important: 1, Minor: 1
-→ Dispatch bug-fixer, re-review
-→ Zero issues.
-
-[Mark 2c complete]
+→ Status: CHANGES REQUIRED. Issues: Critical: 0 | Important: 1 | Minor: 1
+[Print response]
+[Dispatch bug-fixer with review file]
+→ Fixed: 2 issues. Commit: ghi789
+[Print response]
+[Re-review]
+→ Status: APPROVED. Issues: 0.
+[Print response, mark 2c complete]
 
 --- Phase 3 ---
 
@@ -539,7 +524,8 @@ You: I'm using the `executing-an-implementation-plan` skill.
 | Excuse | Reality |
 |--------|---------|
 | "I'll read all phases upfront to understand the full picture" | No. Read one phase at a time. Context limits are real. |
-| "I'll skip the read step, I remember what's in the file" | No. Always read just-in-time. Context may have been compacted. |
+| "I'll skip the read step, I remember what's in the file" | No. Delegate to phase-prep subagent. Context may have been compacted. |
 | "I'll review after each task to catch issues early" | No. Review once per phase. Task-level review wastes context. |
 | "Context error on review, I'll skip the review" | No. Chunk the review into halves. Never skip review. |
 | "Minor issues can wait" | No. Fix ALL issues including Minor. |
+| "I'll return full reports instead of summaries" | No. Subagents must write to files and return summaries. That's the whole point. |
