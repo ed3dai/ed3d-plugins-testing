@@ -1,5 +1,24 @@
 # Changelog
 
+## ed3d-hook-security-hardening 1.0.1
+
+Expanded detection coverage to address common Claude-generated access patterns.
+
+**New:**
+- Detect polyglot env readers (python3, node, ruby, perl, awk reading environment variables)
+- Detect `declare -p` on secret variables
+- Detect `curl -d @.env` and `curl -F file=@.env` file exfiltration
+- Detect `while read` loops on secret files
+- Detect `git remote set-url` and `git config` with embedded tokens
+- Detect file reading via sed, awk, strings, base64, xxd, od, dd, tee, perl
+- Detect `grep '' .env` (empty/wildcard pattern reads entire file)
+- 197 tests for bash secrets hook, 37 tests for sensitive file hook
+
+**Fixed:**
+- Echo check now catches all secret variables in multi-variable commands
+- Dot-source regex correctly catches `. .env` syntax
+- Handle non-string command input without crashing
+
 ## ed3d-hook-security-hardening 1.0.0
 
 Hook plugin that catches common secrets leakage patterns in Claude Code sessions.

@@ -31,7 +31,11 @@ SECRET_FILE_PATTERNS = [
 ]
 
 # Commands that read/display file contents
-FILE_READ_COMMANDS = {"cat", "less", "more", "head", "tail", "bat", "view"}
+FILE_READ_COMMANDS = {
+    "cat", "less", "more", "head", "tail", "bat", "view",
+    "sed", "awk", "strings", "base64", "xxd", "od", "dd",
+    "tee", "perl",
+}
 
 # Commands that display environment variable values
 ENV_DISPLAY_COMMANDS = {"printenv", "env"}
@@ -75,19 +79,19 @@ def split_pipeline(command: str) -> list[list[str]]:
 
 def check_echo_secret(command: str) -> str | None:
     """Check for echo/printf of environment variables with secret-like names."""
-    # Match echo/printf with $VAR, ${VAR}, ${VAR:...} patterns
-    match = re.search(
-        r"\b(echo|printf)\b.*\$\{?([A-Za-z_][A-Za-z0-9_]*)",
-        command,
-    )
-    if match and name_looks_secret(match.group(2)):
-        var_name = match.group(2)
-        return (
-            f"This command would echo ${var_name} into Claude's context, "
-            f"leaking it to the API provider. "
-            f'Use [[ -v {var_name} ]] && echo "set" || echo "not set" '
-            f"to check existence without reading the value."
-        )
+    # First check that echo/printf is in the command
+    if not re.search(r"\b(echo|printf)\b", command):
+        return None
+    # Find ALL $VAR and ${VAR} references after echo/printf
+    for match in re.finditer(r"\$\{?([A-Za-z_][A-Za-z0-9_]*)", command):
+        if name_looks_secret(match.group(1)):
+            var_name = match.group(1)
+            return (
+                f"This command would echo ${var_name} into Claude's context, "
+                f"leaking it to the API provider. "
+                f'Use [[ -v {var_name} ]] && echo "set" || echo "not set" '
+                f"to check existence without reading the value."
+            )
     return None
 
 
@@ -141,7 +145,7 @@ def check_env_grep_no_quiet(stages: list[list[str]]) -> str | None:
 
 
 def check_cat_secret_file(stages: list[list[str]]) -> str | None:
-    """Check for cat/less/head/tail on files that likely contain secrets."""
+    """Check for commands that read/display secret file contents."""
     for stage in stages:
         if not stage:
             continue
@@ -150,12 +154,35 @@ def check_cat_secret_file(stages: list[list[str]]) -> str | None:
             for arg in stage[1:]:
                 if arg.startswith("-"):
                     continue
+                # dd uses if= syntax
+                if cmd == "dd" and arg.startswith("if="):
+                    path = arg[3:]
+                    if file_looks_secret(path):
+                        return (
+                            f"dd if={path} would read secret file contents into context. "
+                            f"To inspect structure without values: "
+                            f"grep '^[A-Z_]*=' {path} | cut -d= -f1"
+                        )
+                    continue
                 if file_looks_secret(arg):
                     return (
                         f"{cmd} {arg} would read secret file contents into context. "
                         f"To inspect structure without values: "
                         f"grep '^[A-Z_]*=' {arg} | cut -d= -f1"
                     )
+        # grep with empty pattern or '.' on secret files reads all contents
+        if cmd == "grep":
+            args_no_flags = [a for a in stage[1:] if not a.startswith("-")]
+            if len(args_no_flags) >= 2:
+                pattern, *files = args_no_flags
+                if pattern in ("", ".", ".*"):
+                    for f in files:
+                        if file_looks_secret(f):
+                            return (
+                                f"grep '{pattern}' {f} reads the entire file contents. "
+                                f"To inspect structure without values: "
+                                f"grep '^[A-Z_]*=' {f} | cut -d= -f1"
+                            )
     return None
 
 
@@ -222,16 +249,17 @@ def check_grep_config_leaks(stages: list[list[str]], command: str) -> str | None
     return None
 
 
-def check_git_clone_token(command: str) -> str | None:
-    """Check for tokens embedded in git clone URLs."""
-    if "git" in command and "clone" in command:
-        # Match patterns like https://$TOKEN@github.com or https://${TOKEN}@
-        if re.search(r"https?://\$[{(]?[A-Za-z_]+[})]?@", command):
-            return (
-                "Embedding tokens in git clone URLs persists them in "
-                ".git/config and shell history. Use GIT_ASKPASS or a "
-                "credential helper instead."
-            )
+def check_git_token_in_url(command: str) -> str | None:
+    """Check for tokens embedded in git URLs (clone, remote set-url, config)."""
+    if "git" not in command:
+        return None
+    # Match patterns like https://$TOKEN@github.com or https://${TOKEN}@
+    if re.search(r"https?://\$[{(]?[A-Za-z_]+[})]?@", command):
+        return (
+            "Embedding tokens in git URLs persists them in "
+            ".git/config and shell history. Use GIT_ASKPASS or a "
+            "credential helper instead."
+        )
     return None
 
 
@@ -276,6 +304,84 @@ def check_length_or_substring(command: str) -> str | None:
     return None
 
 
+def check_declare_secret(command: str) -> str | None:
+    """Check for declare -p on secret variables."""
+    match = re.search(r"\bdeclare\s+-p\s+(\S+)", command)
+    if match and name_looks_secret(match.group(1)):
+        var_name = match.group(1)
+        return (
+            f"declare -p {var_name} displays the variable's value. "
+            f'Use [[ -v {var_name} ]] && echo "set" || echo "not set" instead.'
+        )
+    # declare -p piped to grep (shows all vars, grep filters to secret ones)
+    if re.search(r"\bdeclare\s+-p\b", command) and not re.search(r"\bdeclare\s+-p\s+\S", command):
+        # Bare `declare -p` dumps everything — check if piped to grep for secrets
+        # This is caught by the pipeline check below if it pipes to grep
+        pass
+    return None
+
+
+def check_polyglot_env_reader(command: str) -> str | None:
+    """Check for python/node/ruby/perl/awk reading environment variables."""
+    patterns = [
+        # python3 -c "import os; print(os.environ['SECRET'])"
+        (r"\bpython[23]?\b.*\bos\.environ\b.*['\"]([A-Za-z_][A-Za-z0-9_]*)['\"]", "python"),
+        (r"\bpython[23]?\b.*\bos\.getenv\b.*['\"]([A-Za-z_][A-Za-z0-9_]*)['\"]", "python"),
+        # node -e "console.log(process.env.SECRET)"
+        (r"\bnode\b.*\bprocess\.env\.([A-Za-z_][A-Za-z0-9_]*)", "node"),
+        # ruby -e "puts ENV['SECRET']"
+        (r"\bruby\b.*\bENV\b.*['\"]([A-Za-z_][A-Za-z0-9_]*)['\"]", "ruby"),
+        # perl -e "print $ENV{SECRET}"
+        (r"\bperl\b.*\$ENV\{([A-Za-z_][A-Za-z0-9_]*)\}", "perl"),
+        # awk 'BEGIN{print ENVIRON["SECRET"]}'
+        (r"\bawk\b.*\bENVIRON\b.*['\"]([A-Za-z_][A-Za-z0-9_]*)['\"]", "awk"),
+    ]
+    for pattern, lang in patterns:
+        match = re.search(pattern, command)
+        if match and name_looks_secret(match.group(1)):
+            var_name = match.group(1)
+            return (
+                f"This {lang} command reads ${var_name} and would leak it into context. "
+                f'Use [[ -v {var_name} ]] && echo "set" || echo "not set" '
+                f"to check existence from bash instead."
+            )
+    return None
+
+
+def check_curl_file_exfil(command: str) -> str | None:
+    """Check for curl uploading secret files via -d @file or -F file=@file."""
+    if "curl" not in command:
+        return None
+    # -d @.env, --data @.env, --data-binary @.env
+    match = re.search(r"(?:-d|--data(?:-\w+)?)\s+@(\S+)", command)
+    if match and file_looks_secret(match.group(1)):
+        return (
+            f"curl -d @{match.group(1)} sends the entire secret file as POST data. "
+            f"This leaks all credentials in the file to the target server."
+        )
+    # -F "file=@.env" or -F file=@.env (quotes may wrap the whole arg)
+    match = re.search(r"-F\s+[\"']?\w+=@([^\s\"']+)", command)
+    if match and file_looks_secret(match.group(1)):
+        return (
+            f"curl -F with @{match.group(1)} uploads the secret file. "
+            f"This leaks all credentials in the file to the target server."
+        )
+    return None
+
+
+def check_while_read_secret_file(command: str) -> str | None:
+    """Check for while-read loops redirected from secret files."""
+    match = re.search(r"\bwhile\b.*\bread\b.*<\s*(\S+)", command)
+    if match and file_looks_secret(match.group(1)):
+        filename = match.group(1)
+        return (
+            f"Reading {filename} line-by-line still loads secret values into context. "
+            f"To inspect structure without values: "
+            f"grep '^[A-Z_]*=' {filename} | cut -d= -f1"
+        )
+    return None
+
+
 def deny(reason: str) -> None:
     """Output a deny decision and exit."""
     output = {
@@ -312,7 +418,7 @@ def main():
         sys.exit(0)
 
     command = input_data.get("tool_input", {}).get("command", "")
-    if not command:
+    if not command or not isinstance(command, str):
         sys.exit(0)
 
     stages = split_pipeline(command)
@@ -324,6 +430,8 @@ def main():
         lambda: check_echo_secret(command),
         lambda: check_printenv_secret(stages),
         lambda: check_length_or_substring(command),
+        lambda: check_declare_secret(command),
+        lambda: check_polyglot_env_reader(command),
     ]:
         reason = check()
         if reason:
@@ -337,8 +445,10 @@ def main():
         lambda: check_cat_secret_file(stages),
         lambda: check_source_secret_file(command),
         lambda: check_grep_config_leaks(stages, command),
-        lambda: check_git_clone_token(command),
+        lambda: check_git_token_in_url(command),
         lambda: check_curl_url_token(command),
+        lambda: check_curl_file_exfil(command),
+        lambda: check_while_read_secret_file(command),
     ]:
         reason = check()
         if reason:
